@@ -12,6 +12,7 @@ const USAGE_URL = 'https://chatgpt.com/codex/cloud/settings/analytics#usage';
 const USAGE_BASE_URL = USAGE_URL.split('#')[0];
 const PAGE_LOAD_TIMEOUT_MS = 45000;
 const PAGE_READ_TIMEOUT_MS = 15000;
+const USAGE_CONTENT_TIMEOUT_MS = 25000;
 const APP_ROOT = path.resolve(__dirname, '..');
 const USER_DATA_DIR = app.isPackaged ? path.join(app.getPath('appData'), 'Codex Balance Tray') : path.join(APP_ROOT, 'userdata');
 const CACHE_DIR = path.join(USER_DATA_DIR, 'cache');
@@ -257,7 +258,7 @@ function showLowBalanceNotification() {
 
 function showErrorNotification(message) {
   new Notification({
-    title: 'Codex Balance 刷新失败',
+    title: 'Codex QuotaRing 未更新',
     body: message || '无法读取余额，请检查登录状态或网络连接。'
   }).show();
 }
@@ -448,37 +449,63 @@ async function readUsageFromPage(win) {
 
 async function readUsageFromPageOnce(win) {
   try {
+    await waitForUsageContent(win);
     const result = await withTimeout(win.webContents.executeJavaScript(`
       (() => {
         const text = document.body ? document.body.innerText : '';
         const compact = text.replace(/\\r/g, '');
         const lines = compact.split('\\n').map((line) => line.trim()).filter(Boolean);
+        const percentPattern = /(\\d{1,3})\\s*%/;
+        const toPercent = (match) => {
+          if (!match) return null;
+          const value = Number(match[1]);
+          return value >= 0 && value <= 100 ? value : null;
+        };
         const findBlock = (patterns) => {
           const index = lines.findIndex((line) => patterns.some((pattern) => pattern.test(line)));
           if (index < 0) return null;
-          return lines.slice(index, index + 12).join('\\n');
+          const start = Math.max(0, index - 6);
+          return lines.slice(start, index + 18).join('\\n');
         };
         const parsePercent = (block) => {
           if (!block) return null;
-          const remainingMatch = block.match(/(\\d{1,3})\\s*%\\s*(?:remaining|left|剩余)?/i);
-          if (!remainingMatch) return null;
-          const value = Number(remainingMatch[1]);
-          return value >= 0 && value <= 100 ? value : null;
+          return toPercent(block.match(percentPattern));
         };
         const parseReset = (block) => {
           if (!block) return null;
-          const match = block.match(/(?:Resets?|Reset|重置)\\s*[:：]?\\s*([^\\n]+)/i);
+          const match = block.match(/(?:Resets?|Reset|Renews?|Renewal|恢复|重置)\\s*(?:in|at)?\\s*[:：]?\\s*([^\\n]+)/i);
           return match ? match[1].trim() : null;
         };
+        const findNearestPercent = (patterns) => {
+          const anchors = [];
+          lines.forEach((line, index) => {
+            if (patterns.some((pattern) => pattern.test(line))) anchors.push(index);
+          });
+          let best = null;
+          for (const anchor of anchors) {
+            const start = Math.max(0, anchor - 8);
+            const end = Math.min(lines.length - 1, anchor + 18);
+            for (let index = start; index <= end; index += 1) {
+              const value = toPercent(lines[index].match(percentPattern));
+              if (value === null) continue;
+              const distance = Math.abs(index - anchor);
+              if (!best || distance < best.distance) best = { value, distance };
+            }
+          }
+          return best ? best.value : null;
+        };
         const fiveCard = findBlock([
-          /5\\s*hour/i,
+          /5\\s*[- ]?\\s*hour/i,
+          /5\\s*[- ]?\\s*h\\b/i,
+          /five\\s*[- ]?\\s*hour/i,
           /five\\s*hour/i,
           /5\\s*小时/,
-          /小时额度/
+          /小时额度/,
+          /5\\s*小时额度/
         ]);
         const weeklyCard = findBlock([
           /weekly/i,
-          /week\\s*limit/i,
+          /week\\s*(?:limit|usage|quota)/i,
           /每周/,
           /周额度/
         ]);
@@ -486,8 +513,19 @@ async function readUsageFromPageOnce(win) {
           title: document.title,
           href: location.href,
           textSample: compact.slice(0, 800),
-          fiveHour: parsePercent(fiveCard),
-          weekly: parsePercent(weeklyCard),
+          fiveHour: parsePercent(fiveCard) ?? findNearestPercent([
+            /5\\s*[- ]?\\s*hour/i,
+            /5\\s*[- ]?\\s*h\\b/i,
+            /five\\s*[- ]?\\s*hour/i,
+            /5\\s*小时/,
+            /小时额度/
+          ]),
+          weekly: parsePercent(weeklyCard) ?? findNearestPercent([
+            /weekly/i,
+            /week\\s*(?:limit|usage|quota)/i,
+            /每周/,
+            /周额度/
+          ]),
           fiveHourReset: parseReset(fiveCard),
           weeklyReset: parseReset(weeklyCard)
         };
@@ -500,7 +538,7 @@ async function readUsageFromPageOnce(win) {
       if (loginHint || revokedHint) {
         throw new Error('需要在登录页面重新登录 ChatGPT');
       }
-      throw new Error(`没有在页面中找到余额文本：${result.title || result.href || '未知页面'}`);
+      throw new Error(`暂时没有识别到余额内容：${result.title || result.href || '未知页面'}`);
     }
 
     lastUsage = {
@@ -516,6 +554,24 @@ async function readUsageFromPageOnce(win) {
     showLowBalanceNotification();
   } catch (error) {
     throw error;
+  }
+}
+
+async function waitForUsageContent(win) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < USAGE_CONTENT_TIMEOUT_MS) {
+    const ready = await withTimeout(win.webContents.executeJavaScript(`
+      (() => {
+        const text = document.body ? document.body.innerText : '';
+        const hasPercent = /\\d{1,3}\\s*%/.test(text);
+        const hasUsageKeyword = /5\\s*[- ]?\\s*(?:hour|h)|five\\s*[- ]?\\s*hour|weekly|week\\s*(?:limit|usage|quota)|5\\s*小时|每周|周额度|小时额度/i.test(text);
+        const hasLoginHint = /log in|sign in|登录|continue|refresh token|revoked/i.test(text);
+        return hasLoginHint || (hasPercent && hasUsageKeyword);
+      })();
+    `), 5000, '等待页面内容超时').catch(() => false);
+
+    if (ready) return;
+    await delay(800);
   }
 }
 
