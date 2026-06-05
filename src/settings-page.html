@@ -54,6 +54,24 @@
       font-weight: 700;
     }
 
+    .title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .version {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1;
+    }
+
+    body.theme-dark .version {
+      color: #8ea3bd;
+    }
+
     .close {
       display: inline-grid;
       place-items: center;
@@ -238,7 +256,10 @@
 <body>
   <main class="window">
     <header class="header">
-      <h1>Settings</h1>
+      <div class="title-wrap">
+        <h1>Settings</h1>
+        <span id="versionBadge" class="version">v0.1.0</span>
+      </div>
       <button id="close" class="close" title="关闭" aria-label="关闭">
         <span class="icon dismiss-icon" aria-hidden="true"></span>
       </button>
@@ -298,6 +319,7 @@
       autoUpdateLabel: document.getElementById('autoUpdateLabel'),
       autoLaunch: document.getElementById('autoLaunch'),
       autoLaunchLabel: document.getElementById('autoLaunchLabel'),
+      versionBadge: document.getElementById('versionBadge'),
       languageLabel: document.getElementById('languageLabel'),
       languageZh: document.getElementById('languageZh'),
       languageEn: document.getElementById('languageEn'),
@@ -386,6 +408,7 @@
       els.notifyWhenLow.checked = config.notifyWhenLow;
       els.autoUpdate.checked = config.autoUpdate;
       els.autoLaunch.checked = config.autoLaunch;
+      els.versionBadge.textContent = `v${config.appVersion || '0.1.0'}`;
       setSegmented('language', selectedLanguage);
       setSegmented('theme', selectedTheme);
     }

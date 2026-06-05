@@ -90,6 +90,13 @@ function saveConfig(nextConfig) {
 
 let config = loadConfig();
 
+function publicConfig() {
+  return {
+    ...config,
+    appVersion: app.getVersion()
+  };
+}
+
 function syncAutoLaunch() {
   try {
     app.setLoginItemSettings({
@@ -223,16 +230,16 @@ function updateTray() {
   tray.setContextMenu(null);
 
   if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    settingsWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
   }
   if (settingsPageWindow && !settingsPageWindow.isDestroyed()) {
-    settingsPageWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    settingsPageWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
   }
   if (statusWindow && !statusWindow.isDestroyed()) {
-    statusWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    statusWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
   }
   if (trayMenuWindow && !trayMenuWindow.isDestroyed()) {
-    trayMenuWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    trayMenuWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
   }
   syncFloatingStatusWindow();
 }
@@ -697,7 +704,7 @@ function showSettingsPage() {
   if (settingsPageWindow && !settingsPageWindow.isDestroyed()) {
     positionSettingsPageWindow(settingsPageWindow);
     settingsPageWindow.showInactive();
-    settingsPageWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    settingsPageWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
     return;
   }
 
@@ -798,7 +805,7 @@ function showTrayMenu() {
       trayMenuWindow.showInactive();
       trayMenuVisible = true;
     }
-    trayMenuWindow.webContents.send('usage:update', { usage: lastUsage, config });
+    trayMenuWindow.webContents.send('usage:update', { usage: lastUsage, config: publicConfig() });
     return;
   }
 
@@ -949,7 +956,7 @@ function hidePanel({ destroy = false } = {}) {
   panelVisible = false;
 }
 
-ipcMain.handle('app:get-state', () => ({ usage: lastUsage, config }));
+ipcMain.handle('app:get-state', () => ({ usage: lastUsage, config: publicConfig() }));
 ipcMain.handle('app:refresh', () => refreshUsage({ visible: false }));
 ipcMain.handle('app:open-usage', () => openUsageWindow(true));
 ipcMain.handle('app:toggle-panel', () => {
@@ -991,7 +998,7 @@ ipcMain.handle('app:save-config', (_event, nextConfig) => {
   scheduleRefresh();
   setupAutoUpdate();
   updateTray();
-  return { usage: lastUsage, config };
+  return { usage: lastUsage, config: publicConfig() };
 });
 
 app.whenReady().then(() => {
