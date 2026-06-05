@@ -1,6 +1,12 @@
 const { app, BrowserWindow, Tray, nativeImage, ipcMain, shell, Notification, screen, powerMonitor } = require('electron');
 const fs = require('fs');
 const path = require('path');
+let autoUpdater = null;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+} catch {
+  autoUpdater = null;
+}
 
 const USAGE_URL = 'https://chatgpt.com/codex/cloud/settings/analytics#usage';
 const USAGE_BASE_URL = USAGE_URL.split('#')[0];
@@ -28,6 +34,7 @@ let statusWindow;
 let trayMenuWindow;
 let browserWindow;
 let refreshTimer;
+let updateTimer;
 let activeRefreshPromise = null;
 let lastPanelToggleAt = 0;
 let panelReady = false;
@@ -55,7 +62,7 @@ const defaultConfig = {
   refreshMinutes: 5,
   warnBelowPercent: 20,
   notifyWhenLow: true,
-  autoRefreshOnStart: true,
+  autoUpdate: false,
   autoLaunch: false,
   floatingStatusBar: true,
   statusWindowBounds: null,
@@ -559,6 +566,22 @@ function scheduleRefresh() {
   }, Math.max(1, Number(config.refreshMinutes || 5)) * 60 * 1000);
 }
 
+function setupAutoUpdate() {
+  if (updateTimer) {
+    clearInterval(updateTimer);
+    updateTimer = null;
+  }
+
+  if (!config.autoUpdate || !autoUpdater || !app.isPackaged) return;
+
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+  updateTimer = setInterval(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+  }, 6 * 60 * 60 * 1000);
+}
+
 function showSettingsWindow() {
   showSettingsPage();
 }
@@ -953,7 +976,7 @@ ipcMain.handle('app:save-config', (_event, nextConfig) => {
     refreshMinutes: Math.max(1, Number(nextConfig.refreshMinutes || config.refreshMinutes)),
     warnBelowPercent: Math.max(1, Math.min(100, Number(nextConfig.warnBelowPercent || config.warnBelowPercent))),
     notifyWhenLow: Boolean(nextConfig.notifyWhenLow),
-    autoRefreshOnStart: Boolean(nextConfig.autoRefreshOnStart),
+    autoUpdate: Boolean(nextConfig.autoUpdate),
     autoLaunch: Boolean(nextConfig.autoLaunch),
     floatingStatusBar: nextConfig.floatingStatusBar !== false,
     statusWindowBounds: nextConfig.statusWindowBounds && Number.isFinite(nextConfig.statusWindowBounds.x) && Number.isFinite(nextConfig.statusWindowBounds.y)
@@ -966,6 +989,7 @@ ipcMain.handle('app:save-config', (_event, nextConfig) => {
   syncAutoLaunch();
   syncFloatingStatusWindow();
   scheduleRefresh();
+  setupAutoUpdate();
   updateTray();
   return { usage: lastUsage, config };
 });
@@ -980,15 +1004,12 @@ app.whenReady().then(() => {
   updateTray();
   syncAutoLaunch();
   scheduleRefresh();
+  setupAutoUpdate();
 
-  if (config.autoRefreshOnStart) {
-    setTimeout(() => refreshUsage({ visible: false }), 1000);
-  }
+  setTimeout(() => refreshUsage({ visible: false }), 1000);
 
   powerMonitor.on('resume', () => {
-    if (config.autoRefreshOnStart) {
-      setTimeout(() => refreshUsage({ visible: false }), 2500);
-    }
+    setTimeout(() => refreshUsage({ visible: false }), 2500);
   });
 });
 
@@ -1002,4 +1023,5 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   if (refreshTimer) clearInterval(refreshTimer);
+  if (updateTimer) clearInterval(updateTimer);
 });

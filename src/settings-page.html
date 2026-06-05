@@ -257,8 +257,8 @@
       <span id="notifyWhenLowLabel">余额低于阈值时通知</span>
     </label>
     <label class="check">
-      <input id="autoRefreshOnStart" type="checkbox">
-      <span id="autoRefreshOnStartLabel">启动后自动刷新</span>
+      <input id="autoUpdate" type="checkbox">
+      <span id="autoUpdateLabel">自动更新</span>
     </label>
     <label class="check">
       <input id="autoLaunch" type="checkbox">
@@ -294,8 +294,8 @@
       warnBelowPercentLabel: document.getElementById('warnBelowPercentLabel'),
       notifyWhenLow: document.getElementById('notifyWhenLow'),
       notifyWhenLowLabel: document.getElementById('notifyWhenLowLabel'),
-      autoRefreshOnStart: document.getElementById('autoRefreshOnStart'),
-      autoRefreshOnStartLabel: document.getElementById('autoRefreshOnStartLabel'),
+      autoUpdate: document.getElementById('autoUpdate'),
+      autoUpdateLabel: document.getElementById('autoUpdateLabel'),
       autoLaunch: document.getElementById('autoLaunch'),
       autoLaunchLabel: document.getElementById('autoLaunchLabel'),
       languageLabel: document.getElementById('languageLabel'),
@@ -318,7 +318,7 @@
         refreshMinutes: '刷新频率（分钟）',
         warnBelowPercent: '低余额提醒阈值（%）',
         notifyWhenLow: '余额低于阈值时通知',
-        autoRefreshOnStart: '启动后自动刷新',
+        autoUpdate: '自动更新',
         autoLaunch: '开机自动启动',
         language: '语言',
         chinese: '中文',
@@ -334,7 +334,7 @@
         refreshMinutes: 'Refresh interval (min)',
         warnBelowPercent: 'Low-balance threshold (%)',
         notifyWhenLow: 'Notify when below threshold',
-        autoRefreshOnStart: 'Refresh on launch',
+        autoUpdate: 'Auto update',
         autoLaunch: 'Start at login',
         language: 'Language',
         chinese: '中文',
@@ -362,7 +362,7 @@
       els.refreshMinutesLabel.textContent = t().refreshMinutes;
       els.warnBelowPercentLabel.textContent = t().warnBelowPercent;
       els.notifyWhenLowLabel.textContent = t().notifyWhenLow;
-      els.autoRefreshOnStartLabel.textContent = t().autoRefreshOnStart;
+      els.autoUpdateLabel.textContent = t().autoUpdate;
       els.autoLaunchLabel.textContent = t().autoLaunch;
       els.languageLabel.textContent = t().language;
       els.languageZh.textContent = t().chinese;
@@ -384,7 +384,7 @@
       els.refreshMinutes.value = config.refreshMinutes;
       els.warnBelowPercent.value = config.warnBelowPercent;
       els.notifyWhenLow.checked = config.notifyWhenLow;
-      els.autoRefreshOnStart.checked = config.autoRefreshOnStart;
+      els.autoUpdate.checked = config.autoUpdate;
       els.autoLaunch.checked = config.autoLaunch;
       setSegmented('language', selectedLanguage);
       setSegmented('theme', selectedTheme);
@@ -408,7 +408,7 @@
         refreshMinutes: els.refreshMinutes.value,
         warnBelowPercent: els.warnBelowPercent.value,
         notifyWhenLow: els.notifyWhenLow.checked,
-        autoRefreshOnStart: els.autoRefreshOnStart.checked,
+        autoUpdate: els.autoUpdate.checked,
         autoLaunch: els.autoLaunch.checked,
         floatingStatusBar: currentConfig.floatingStatusBar !== false,
         language: selectedLanguage,

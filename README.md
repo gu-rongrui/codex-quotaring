@@ -24,6 +24,7 @@ Codex QuotaRing shows the 5 hour usage limit and weekly usage limit in a compact
 
 - Manual refresh and configurable automatic refresh interval
 - Low-balance notification settings
+- Optional app auto update from GitHub Releases
 - Start at login option
 - Custom right-click tray menu
 
