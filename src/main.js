@@ -1,8 +1,11 @@
-const { app, BrowserWindow, Tray, nativeImage, ipcMain, shell, Notification, screen } = require('electron');
+const { app, BrowserWindow, Tray, nativeImage, ipcMain, shell, Notification, screen, powerMonitor } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
 const USAGE_URL = 'https://chatgpt.com/codex/cloud/settings/analytics#usage';
+const USAGE_BASE_URL = USAGE_URL.split('#')[0];
+const PAGE_LOAD_TIMEOUT_MS = 45000;
+const PAGE_READ_TIMEOUT_MS = 15000;
 const APP_ROOT = path.resolve(__dirname, '..');
 const USER_DATA_DIR = app.isPackaged ? path.join(app.getPath('appData'), 'Codex Balance Tray') : path.join(APP_ROOT, 'userdata');
 const CACHE_DIR = path.join(USER_DATA_DIR, 'cache');
@@ -243,12 +246,18 @@ function showErrorNotification(message) {
 }
 
 function openUsageWindow(visible = true) {
-  if (browserWindow && !browserWindow.isDestroyed()) {
+  if (browserWindow && !browserWindow.isDestroyed() && !browserWindow.webContents.isCrashed()) {
     if (visible) browserWindow.show();
-    if (!isUsagePageLoaded(browserWindow)) {
+    if (!isUsagePageUrl(browserWindow.webContents.getURL())) {
       browserWindow.loadURL(USAGE_URL);
     }
     return browserWindow;
+  }
+
+  if (browserWindow && !browserWindow.isDestroyed()) {
+    const staleWindow = browserWindow;
+    browserWindow = null;
+    staleWindow.destroy();
   }
 
   browserWindow = new BrowserWindow({
@@ -285,10 +294,48 @@ function openUsageWindow(visible = true) {
   return browserWindow;
 }
 
+function isUsagePageUrl(url) {
+  return typeof url === 'string' && url.startsWith(USAGE_BASE_URL);
+}
+
 function isUsagePageLoaded(win) {
   if (!win || win.isDestroyed()) return false;
   const currentUrl = win.webContents.getURL();
-  return currentUrl.startsWith(USAGE_URL.split('#')[0]) && !win.webContents.isLoading();
+  return isUsagePageUrl(currentUrl) && !win.webContents.isLoading();
+}
+
+async function prepareUsagePage(win, { forceReload = false } = {}) {
+  if (!win || win.isDestroyed()) throw new Error('使用页面窗口已关闭');
+  if (win.webContents.isCrashed()) throw new Error('使用页面已停止响应，请重新刷新');
+
+  const currentUrl = win.webContents.getURL();
+  const onUsagePage = isUsagePageUrl(currentUrl);
+
+  if (!onUsagePage) {
+    await withTimeout(win.loadURL(USAGE_URL), PAGE_LOAD_TIMEOUT_MS, '使用页面加载超时');
+    return;
+  }
+
+  if (forceReload) {
+    if (win.webContents.isLoading()) {
+      await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
+      return;
+    }
+
+    try {
+      win.webContents.stop();
+      win.webContents.reloadIgnoringCache();
+      await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
+      return;
+    } catch {
+      await withTimeout(win.loadURL(USAGE_URL), PAGE_LOAD_TIMEOUT_MS, '使用页面重新加载超时');
+      return;
+    }
+  }
+
+  if (win.webContents.isLoading()) {
+    await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
+  }
 }
 
 function waitForPageReady(win, timeoutMs = 30000) {
@@ -362,7 +409,12 @@ async function readUsageFromPage(win) {
     } catch (error) {
       lastError = error;
       if (attempt < 2) {
-        await delay(1500);
+        await delay(1000);
+        try {
+          await prepareUsagePage(win, { forceReload: true });
+        } catch (reloadError) {
+          lastError = reloadError;
+        }
       }
     }
   }
@@ -379,7 +431,7 @@ async function readUsageFromPage(win) {
 
 async function readUsageFromPageOnce(win) {
   try {
-    const result = await win.webContents.executeJavaScript(`
+    const result = await withTimeout(win.webContents.executeJavaScript(`
       (() => {
         const text = document.body ? document.body.innerText : '';
         const compact = text.replace(/\\r/g, '');
@@ -423,7 +475,7 @@ async function readUsageFromPageOnce(win) {
           weeklyReset: parseReset(weeklyCard)
         };
       })();
-    `);
+    `), PAGE_READ_TIMEOUT_MS, '余额读取超时，请打开登录页面确认 ChatGPT 状态');
 
     if (typeof result.fiveHour !== 'number' && typeof result.weekly !== 'number') {
       const loginHint = /log in|sign in|登录|continue/i.test(result.textSample || '');
@@ -454,6 +506,21 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function withTimeout(promise, timeoutMs, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 async function refreshUsage({ visible = false } = {}) {
   if (activeRefreshPromise) return activeRefreshPromise;
 
@@ -463,7 +530,7 @@ async function refreshUsage({ visible = false } = {}) {
       updateTray();
       const win = openUsageWindow(visible);
       if (!visible) win.hide();
-      await waitForPageReady(win);
+      await prepareUsagePage(win, { forceReload: true });
       await readUsageFromPage(win);
     } catch (error) {
       lastUsage = {
@@ -882,6 +949,12 @@ app.whenReady().then(() => {
   if (config.autoRefreshOnStart) {
     setTimeout(() => refreshUsage({ visible: false }), 1000);
   }
+
+  powerMonitor.on('resume', () => {
+    if (config.autoRefreshOnStart) {
+      setTimeout(() => refreshUsage({ visible: false }), 2500);
+    }
+  });
 });
 
 app.on('second-instance', () => {
