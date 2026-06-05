@@ -1,0 +1,43 @@
+<svg width="720" height="360" viewBox="0 0 720 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="720" height="360" fill="#F8FAFC"/>
+  <text x="80" y="74" fill="#0F172A" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="26" font-weight="800">Tray Icon Style</text>
+  <text x="80" y="106" fill="#64748B" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="15">Dynamic percentage ring, generated from the current 5 hour limit.</text>
+
+  <g transform="translate(116 150)">
+    <g filter="url(#shadow)">
+      <rect width="86" height="86" rx="20" fill="#172033"/>
+    </g>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#28354A" stroke-width="9"/>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#22C55E" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="81 100" transform="rotate(-90 43 43)"/>
+    <text x="43" y="52" fill="#FFFFFF" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="26" font-weight="800">81</text>
+    <text x="43" y="122" fill="#334155" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="14" font-weight="750">High balance</text>
+    <text x="43" y="144" fill="#64748B" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="12">50-100%</text>
+  </g>
+
+  <g transform="translate(317 150)">
+    <g filter="url(#shadow)">
+      <rect width="86" height="86" rx="20" fill="#172033"/>
+    </g>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#28354A" stroke-width="9"/>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#F59E0B" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="45 100" transform="rotate(-90 43 43)"/>
+    <text x="43" y="52" fill="#FFFFFF" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="26" font-weight="800">45</text>
+    <text x="43" y="122" fill="#334155" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="14" font-weight="750">Medium balance</text>
+    <text x="43" y="144" fill="#64748B" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="12">20-49%</text>
+  </g>
+
+  <g transform="translate(518 150)">
+    <g filter="url(#shadow)">
+      <rect width="86" height="86" rx="20" fill="#172033"/>
+    </g>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#28354A" stroke-width="9"/>
+    <circle cx="43" cy="43" r="28" fill="none" stroke="#EF4444" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="18 100" transform="rotate(-90 43 43)"/>
+    <text x="43" y="52" fill="#FFFFFF" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="26" font-weight="800">18</text>
+    <text x="43" y="122" fill="#334155" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="14" font-weight="750">Low balance</text>
+    <text x="43" y="144" fill="#64748B" text-anchor="middle" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="12">Below 20%</text>
+  </g>
+</svg>

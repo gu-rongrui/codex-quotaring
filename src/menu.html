@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Balance Menu</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      color: #111827;
+      background: transparent;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+    }
+
+    .menu {
+      width: 300px;
+      height: 360px;
+      padding: 18px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+      overflow: hidden;
+    }
+
+    body.theme-dark .menu {
+      background: linear-gradient(145deg, #172333 0%, #0f1a27 58%, #0b1520 100%);
+      color: #f8fafc;
+      box-shadow: 0 5px 12px rgba(2, 8, 23, 0.20);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      -webkit-app-region: drag;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .close {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0;
+      background: #eef2f7;
+      color: #475569;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+    }
+
+    .close:hover {
+      background: #e2e8f0;
+      color: #111827;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      background: currentColor;
+      mask: center / contain no-repeat;
+      -webkit-mask: center / contain no-repeat;
+    }
+
+    .dismiss-icon {
+      mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+      -webkit-mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+    }
+
+    .usage {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    body.theme-dark .usage {
+      border-color: rgba(124, 154, 190, 0.2);
+      color: #aab8cc;
+    }
+
+    .actions {
+      display: grid;
+      gap: 8px;
+      padding: 18px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    body.theme-dark .actions {
+      border-color: rgba(124, 154, 190, 0.2);
+    }
+
+    button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 12px;
+      background: #eef2f7;
+      color: #111827;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .toggle-row {
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: transparent;
+      padding: 0 0 0 12px;
+      cursor: default;
+    }
+
+    .toggle-row:hover {
+      background: transparent;
+    }
+
+    .pill {
+      display: inline-flex;
+      gap: 2px;
+      width: 96px;
+      padding: 2px;
+      border-radius: 999px;
+      background: #dbe3ee;
+      flex: 0 0 auto;
+      margin-left: auto;
+      cursor: pointer;
+    }
+
+    .pill span {
+      flex: 1 1 0;
+      display: inline-grid;
+      place-items: center;
+      height: 22px;
+      border-radius: 999px;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .toggle-row.on .pill-on,
+    .toggle-row.off .pill-off {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    button:hover {
+      background: #e2e8f0;
+    }
+
+    button.primary {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    button.primary:hover {
+      background: #6f609f;
+    }
+
+    body.theme-dark button {
+      background: rgba(55, 75, 100, 0.72);
+      color: #d8e5f4;
+    }
+
+    body.theme-dark .close {
+      background: rgba(55, 75, 100, 0.72);
+      color: #d8e5f4;
+    }
+
+    body.theme-dark button:hover {
+      background: rgba(71, 94, 124, 0.86);
+    }
+
+    body.theme-dark button.primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.theme-dark button.primary:hover {
+      background: #1d4ed8;
+    }
+
+    body.theme-dark .pill {
+      background: #24344a;
+    }
+
+    body.theme-dark .pill span {
+      color: #aab8cc;
+    }
+
+    body.theme-dark .toggle-row.on .pill-on,
+    body.theme-dark .toggle-row.off .pill-off {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .meta {
+      display: grid;
+      gap: 14px;
+      padding-top: 18px;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    body.theme-dark .meta {
+      color: #aab8cc;
+    }
+  </style>
+</head>
+<body>
+  <main class="menu">
+    <header class="header">
+      <h1>Codex Balance</h1>
+      <button id="close" class="close" title="关闭" aria-label="关闭" type="button">
+        <span class="icon dismiss-icon" aria-hidden="true"></span>
+      </button>
+    </header>
+    <section class="usage">
+      <div id="fiveHour">5 hour: --</div>
+      <div id="weekly">Weekly: --</div>
+    </section>
+    <section class="actions">
+      <button id="refresh" class="primary" type="button">立即刷新</button>
+      <button id="settings" type="button">设置</button>
+      <button id="floatingStatus" class="toggle-row on" type="button">
+        <span id="floatingStatusText">浮动状态栏</span>
+        <span class="pill" aria-hidden="true">
+          <span id="floatingStatusOn" class="pill-on">开</span>
+          <span id="floatingStatusOff" class="pill-off">关</span>
+        </span>
+      </button>
+    </section>
+    <section class="meta">
+      <button id="quit" type="button">退出</button>
+    </section>
+  </main>
+
+  <script>
+    const els = {
+      fiveHour: document.getElementById('fiveHour'),
+      weekly: document.getElementById('weekly'),
+      refresh: document.getElementById('refresh'),
+      settings: document.getElementById('settings'),
+      floatingStatus: document.getElementById('floatingStatus'),
+      floatingStatusText: document.getElementById('floatingStatusText'),
+      floatingStatusOn: document.getElementById('floatingStatusOn'),
+      floatingStatusOff: document.getElementById('floatingStatusOff'),
+      close: document.getElementById('close'),
+      quit: document.getElementById('quit')
+    };
+
+    let selectedLanguage = 'zh';
+    let currentConfig = null;
+
+    function usageLine(label, value, reset) {
+      if (typeof value !== 'number') return `${label}: --`;
+      return `${label}: ${value}%${reset ? `, resets ${reset}` : ''}`;
+    }
+
+    function render({ usage, config }) {
+      selectedLanguage = config.language === 'en' ? 'en' : 'zh';
+      document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
+      document.body.classList.toggle('theme-dark', config.theme === 'dark');
+      currentConfig = config;
+
+      const zh = selectedLanguage !== 'en';
+      els.fiveHour.textContent = usageLine(zh ? '5 小时' : '5 hour', usage.fiveHour, usage.fiveHourReset);
+      els.weekly.textContent = usageLine(zh ? '每周' : 'Weekly', usage.weekly, usage.weeklyReset);
+      els.refresh.textContent = zh ? '立即刷新' : 'Refresh now';
+      els.settings.textContent = zh ? '设置' : 'Settings';
+      els.floatingStatusText.textContent = zh ? '浮动状态栏' : 'Floating status bar';
+      els.floatingStatusOn.textContent = zh ? '开' : 'On';
+      els.floatingStatusOff.textContent = zh ? '关' : 'Off';
+      els.close.title = zh ? '关闭' : 'Close';
+      els.close.setAttribute('aria-label', zh ? '关闭' : 'Close');
+      els.floatingStatus.classList.toggle('on', config.floatingStatusBar !== false);
+      els.floatingStatus.classList.toggle('off', config.floatingStatusBar === false);
+      els.quit.textContent = zh ? '退出' : 'Quit';
+    }
+
+    async function load() {
+      render(await window.codexBalance.getState());
+    }
+
+    els.refresh.addEventListener('click', async () => {
+      await window.codexBalance.refresh();
+      await load();
+      window.codexBalance.hideTrayMenu();
+    });
+
+    els.settings.addEventListener('click', () => {
+      window.codexBalance.showSettingsPanel();
+    });
+
+    els.floatingStatus.addEventListener('click', async () => {
+      if (!currentConfig) return;
+      const nextConfig = {
+        ...currentConfig,
+        floatingStatusBar: currentConfig.floatingStatusBar === false
+      };
+      render(await window.codexBalance.saveConfig(nextConfig));
+    });
+
+    els.close.addEventListener('click', () => {
+      window.codexBalance.hideTrayMenu();
+    });
+
+    els.quit.addEventListener('click', () => {
+      window.codexBalance.quit();
+    });
+
+    window.codexBalance.onUsageUpdate(render);
+    load();
+  </script>
+</body>
+</html>

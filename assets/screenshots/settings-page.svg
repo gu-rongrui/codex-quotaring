@@ -1,0 +1,50 @@
+<svg width="397" height="463" viewBox="0 0 397 463" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+  <rect width="397" height="463" fill="#F8FAFC"/>
+  <g filter="url(#shadow)">
+    <rect x="31" y="31" width="334" height="401" rx="10" fill="#FFFFFF"/>
+  </g>
+  <text x="49" y="74" fill="#111827" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="20" font-weight="750">Settings</text>
+  <rect x="313" y="51" width="34" height="34" rx="9" fill="#EEF2F7"/>
+  <path d="M323.5 61.5 336.5 74.5M336.5 61.5 323.5 74.5" stroke="#475569" stroke-width="1.7" stroke-linecap="round"/>
+
+  <text x="49" y="123" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Refresh interval (min)</text>
+  <rect x="267" y="103" width="79" height="33" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="282" y="125" fill="#111827" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="14">10</text>
+
+  <text x="49" y="168" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Low-balance threshold (%)</text>
+  <rect x="267" y="148" width="79" height="33" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="282" y="170" fill="#111827" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="14">20</text>
+
+  <rect x="54" y="194" width="14" height="14" rx="2" fill="#8C5643"/>
+  <path d="M57.5 201.2 60.4 204.1 65.6 197.8" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="206" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Notify when below threshold</text>
+
+  <rect x="54" y="226" width="14" height="14" rx="2" fill="#B06C4F"/>
+  <path d="M57.5 233.2 60.4 236.1 65.6 229.8" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="238" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Refresh on launch</text>
+
+  <rect x="54" y="260" width="14" height="14" rx="2" fill="#FFFFFF" stroke="#64748B"/>
+  <text x="80" y="272" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Start at login</text>
+
+  <text x="49" y="308" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Language</text>
+  <rect x="200" y="288" width="146" height="31" rx="15.5" fill="#E2E8F0"/>
+  <text x="224" y="309" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">中文</text>
+  <rect x="274" y="291" width="68" height="25" rx="12.5" fill="#7A6BAD"/>
+  <text x="294" y="308" fill="#FFFFFF" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">English</text>
+
+  <text x="49" y="350" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Theme</text>
+  <rect x="200" y="330" width="146" height="31" rx="15.5" fill="#E2E8F0"/>
+  <rect x="203" y="333" width="69" height="25" rx="12.5" fill="#7A6BAD"/>
+  <text x="225" y="350" fill="#FFFFFF" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Light</text>
+  <text x="295" y="350" fill="#475569" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Dark</text>
+
+  <rect x="49" y="378" width="60" height="36" rx="8" fill="#7A6BAD"/>
+  <text x="64" y="401" fill="#FFFFFF" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="750">Save</text>
+  <rect x="118" y="378" width="101" height="36" rx="8" fill="#E2E8F0"/>
+  <text x="133" y="401" fill="#111827" font-family="Segoe UI, Microsoft YaHei, Arial" font-size="13" font-weight="700">Login page</text>
+</svg>

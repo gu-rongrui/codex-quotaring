@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Balance Status</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      color: #1f2937;
+      background: transparent;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+    }
+
+    .bar {
+      --progress: 0%;
+      --progress-color: #d9f8f3;
+      position: relative;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) 26px;
+      align-items: center;
+      width: 178px;
+      height: 30px;
+      padding: 0 3px 0 10px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      background-clip: padding-box;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.10);
+      cursor: grab;
+      -webkit-app-region: drag;
+    }
+
+    .bar::before {
+      content: "";
+      position: absolute;
+      inset: -1px auto -1px -1px;
+      width: var(--progress);
+      border-radius: inherit;
+      background: var(--progress-color);
+      opacity: 0.86;
+      pointer-events: none;
+    }
+
+    .bar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(255, 255, 255, 0.16);
+      pointer-events: none;
+    }
+
+    .slot,
+    .refresh {
+      position: relative;
+      z-index: 1;
+    }
+
+    .percent {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+      color: #1f2937;
+    }
+
+    .remaining {
+      justify-self: end;
+      font-size: 11px;
+      font-weight: 650;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .refresh {
+      display: inline-grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #334155;
+      cursor: pointer;
+      padding: 0;
+      -webkit-app-region: no-drag;
+    }
+
+    .refresh:hover {
+      background: rgba(226, 232, 240, 0.65);
+    }
+
+    .refresh svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    body.theme-dark .bar {
+      background: rgba(15, 26, 39, 0.94);
+      box-shadow: 0 3px 8px rgba(2, 8, 23, 0.22);
+    }
+
+    body.theme-dark .bar::after {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    body.theme-dark .percent {
+      color: #f8fafc;
+    }
+
+    body.theme-dark .remaining {
+      color: #b7c4d6;
+    }
+
+    body.theme-dark .refresh {
+      background: transparent;
+      color: #d8e5f4;
+    }
+
+    body.theme-dark .refresh:hover {
+      background: rgba(55, 75, 100, 0.72);
+    }
+  </style>
+</head>
+<body>
+  <div id="bar" class="bar" aria-label="Codex Balance floating status">
+    <div id="percent" class="slot percent">--%</div>
+    <div id="remaining" class="slot remaining">剩余 --</div>
+    <button id="refresh" class="refresh" type="button" aria-label="Refresh">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 12a9 9 0 0 1-15.1 6.6"/>
+        <path d="M3 12A9 9 0 0 1 18.1 5.4"/>
+        <path d="M18 2v5h-5"/>
+        <path d="M6 22v-5h5"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    const els = {
+      bar: document.getElementById('bar'),
+      percent: document.getElementById('percent'),
+      remaining: document.getElementById('remaining'),
+      refresh: document.getElementById('refresh')
+    };
+
+    let selectedLanguage = 'zh';
+
+    function clampPercent(value) {
+      return typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 0;
+    }
+
+    function percentText(value) {
+      return typeof value === 'number' ? `${value}%` : '--%';
+    }
+
+    function usageColor(value, warnBelowPercent, theme) {
+      const dark = theme === 'dark';
+      if (typeof value !== 'number') return dark ? '#27374f' : '#e2e8f0';
+      if (value < warnBelowPercent) return '#ef4444';
+      if (value < 50) return '#f59e0b';
+      return dark ? '#7668ff' : '#22c55e';
+    }
+
+    function parseResetDate(resetText) {
+      if (!resetText) return null;
+      const now = new Date();
+      const normalized = resetText.replace(/^重置：/, '').trim();
+      const timeOnly = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (timeOnly) {
+        let hours = Number(timeOnly[1]);
+        const minutes = Number(timeOnly[2]);
+        const period = timeOnly[3].toUpperCase();
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        const date = new Date(now);
+        date.setHours(hours, minutes, 0, 0);
+        if (date <= now) date.setDate(date.getDate() + 1);
+        return date;
+      }
+
+      const parsed = new Date(normalized);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatDurationUntil(resetText) {
+      const target = parseResetDate(resetText);
+      if (!target) return '--';
+
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) return selectedLanguage === 'en' ? 'now' : '现在';
+
+      const totalMinutes = Math.max(1, Math.round(diff / 60000));
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (days > 0) return `${days}d${hours ? ` ${hours}h` : ''}`;
+      if (hours > 0) return `${hours}h${minutes ? ` ${minutes}min` : ''}`;
+      return `${minutes}min`;
+    }
+
+    function render({ usage, config }) {
+      selectedLanguage = config.language === 'en' ? 'en' : 'zh';
+      document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
+      document.body.classList.toggle('theme-dark', config.theme === 'dark');
+
+      const five = typeof usage.fiveHour === 'number' ? usage.fiveHour : null;
+      const color = usageColor(five, config.warnBelowPercent, config.theme);
+      els.bar.style.setProperty('--progress', `${clampPercent(five)}%`);
+      els.bar.style.setProperty('--progress-color', color);
+      els.percent.textContent = percentText(five);
+      const duration = formatDurationUntil(usage.fiveHourReset);
+      els.remaining.textContent = selectedLanguage === 'en' ? `${duration} left` : `剩余 ${duration}`;
+    }
+
+    async function load() {
+      render(await window.codexBalance.getState());
+    }
+
+    els.refresh.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      await window.codexBalance.refresh();
+      await load();
+    });
+
+    window.codexBalance.onUsageUpdate(render);
+    load();
+  </script>
+</body>
+</html>

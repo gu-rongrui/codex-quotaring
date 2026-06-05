@@ -1,0 +1,52 @@
+{
+  "name": "codex-quotaring",
+  "version": "0.1.0",
+  "description": "Windows tray monitor for ChatGPT Codex balance, 5 hour usage limit, and weekly usage limit.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis"
+  },
+  "author": "",
+  "license": "MIT",
+  "build": {
+    "appId": "com.codexquotaring.app",
+    "productName": "Codex QuotaRing",
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "README.md",
+      "LICENSE",
+      "NOTICE"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Codex QuotaRing"
+    }
+  },
+  "devDependencies": {
+    "electron": "42.3.1",
+    "electron-builder": "^26.8.1",
+    "png-to-ico": "^3.0.1"
+  }
+}

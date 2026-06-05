@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Balance</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      background: transparent;
+      color: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+    }
+
+    .window {
+      position: relative;
+      width: 300px;
+      height: 360px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 0;
+      outline: 0;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+      overflow: hidden;
+    }
+
+    body.theme-dark .window {
+      background: linear-gradient(145deg, #172333 0%, #0f1a27 58%, #0b1520 100%);
+      color: #f8fafc;
+      box-shadow: 0 5px 12px rgba(2, 8, 23, 0.20);
+    }
+
+    body.theme-dark h1,
+    body.theme-dark .hero-value,
+    body.theme-dark .metric-value,
+    body.theme-dark .ring-value {
+      color: #f8fafc;
+      fill: #f8fafc;
+    }
+
+    body.theme-dark .subtitle,
+    body.theme-dark .hero-label,
+    body.theme-dark .metric-name,
+    body.theme-dark .hero-copy,
+    body.theme-dark .reset,
+    body.theme-dark .left-time {
+      color: #aab8cc;
+    }
+
+    body.theme-dark .settings {
+      background: rgba(20, 32, 46, 0.96);
+      border-color: rgba(124, 154, 190, 0.24);
+    }
+
+    body.theme-dark input[type="number"] {
+      background: #0d1824;
+      border-color: #33465f;
+      color: #f8fafc;
+    }
+
+    body.theme-dark .advice {
+      background: rgba(48, 67, 90, 0.52);
+      color: #aab8cc;
+      border: 1px solid rgba(124, 154, 190, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    body.theme-dark .icon-button {
+      background: rgba(55, 75, 100, 0.72);
+      color: #d8e5f4;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    body.theme-dark .outer-track,
+    body.theme-dark .bar {
+      stroke: #2d4055;
+      background: #2d4055;
+    }
+
+    body.theme-dark .inner-track,
+    body.theme-dark .weekly .bar {
+      stroke: #27374f;
+      background: #27374f;
+    }
+
+    body.theme-dark .outer-fill,
+    body.theme-dark .five-hour .bar-fill {
+      stroke: #38d6c7;
+      background: #38d6c7;
+    }
+
+    body.theme-dark .inner-fill,
+    body.theme-dark .weekly .bar-fill {
+      stroke: #7668ff;
+      background: #7668ff;
+    }
+
+    body.theme-dark .segmented {
+      background: #24344a;
+    }
+
+    body.theme-dark .segmented button {
+      color: #aab8cc;
+    }
+
+    body.theme-dark .segmented button.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.theme-dark .advice.good,
+    body.theme-dark .advice.short,
+    body.theme-dark .advice.key,
+    body.theme-dark .advice.low,
+    body.theme-dark .advice.wait {
+      background: rgba(48, 67, 90, 0.52);
+      color: #d8e5f4;
+    }
+
+    .header {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 13px 118px 6px 14px;
+      -webkit-app-region: drag;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .window-actions {
+      position: absolute;
+      top: 12px;
+      right: 8px;
+      display: flex;
+      gap: 7px;
+      flex-shrink: 0;
+      -webkit-app-region: no-drag;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: #eef2f7;
+      color: #475569;
+      cursor: pointer;
+      padding: 0;
+      transition: background-color 150ms ease, color 150ms ease, transform 150ms ease;
+    }
+
+    .icon-button:hover {
+      background: #e2e8f0;
+      color: #111827;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      background: currentColor;
+      mask: center / contain no-repeat;
+      -webkit-mask: center / contain no-repeat;
+    }
+
+    .icon.settings-icon {
+      mask-image: url("icons/ic_fluent_settings_20_regular.svg");
+      -webkit-mask-image: url("icons/ic_fluent_settings_20_regular.svg");
+    }
+
+    .icon.refresh-icon {
+      mask-image: url("icons/ic_fluent_arrow_clockwise_20_regular.svg");
+      -webkit-mask-image: url("icons/ic_fluent_arrow_clockwise_20_regular.svg");
+    }
+
+    .icon.dismiss-icon {
+      mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+      -webkit-mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 100px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      margin: 3px 16px 14px;
+      padding: 4px 0 0;
+      color: #111827;
+    }
+
+    .rings {
+      width: 100px;
+      height: 100px;
+    }
+
+    .track {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .outer-track {
+      stroke: #e2e8f0;
+      stroke-width: 11;
+    }
+
+    .outer-fill {
+      stroke: #22c55e;
+      stroke-width: 11;
+    }
+
+    .inner-track {
+      stroke: #dbeafe;
+      stroke-width: 8;
+    }
+
+    .inner-fill {
+      stroke: #2563eb;
+      stroke-width: 8;
+    }
+
+    .ring-value {
+      font-size: 18px;
+      font-weight: 700;
+      fill: #111827;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .hero-label {
+      font-size: 12px;
+      font-weight: 650;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+
+    .hero-value {
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 750;
+      margin-bottom: 6px;
+    }
+
+    .hero-copy {
+      font-size: 12px;
+      line-height: 1.35;
+      color: #475569;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metrics {
+      display: grid;
+      gap: 9px;
+      width: 100%;
+      padding: 0 18px 0 14px;
+      overflow: hidden;
+    }
+
+    .metric {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+
+    .metric-name {
+      font-size: 12px;
+      font-weight: 650;
+      color: #64748b;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric-value {
+      font-size: 13px;
+      font-weight: 750;
+      color: #111827;
+      flex-shrink: 0;
+      padding-left: 8px;
+    }
+
+    .bar {
+      width: 100%;
+      max-width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      min-width: 0;
+      border-radius: inherit;
+      background: #22c55e;
+      transition: width 180ms ease, background-color 180ms ease;
+    }
+
+    .weekly .bar {
+      background: #dbeafe;
+    }
+
+    .weekly .bar-fill {
+      background: #2563eb;
+    }
+
+    .reset {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      margin-top: 7px;
+      font-size: 10px;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    .advice {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 7px 18px 0 14px;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .advice-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .advice-text {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .advice.good {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .advice.short {
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .advice.key {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .advice.low {
+      background: #fff7ed;
+      color: #c2410c;
+    }
+
+    .advice.wait {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .reset span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .left-time {
+      color: #64748b;
+      text-align: right;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 26px 18px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      height: 32px;
+      padding: 0 13px;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+      background: #e2e8f0;
+      color: #111827;
+    }
+
+    button.primary {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    button.primary:hover {
+      background: #6f609f;
+    }
+
+    .settings {
+      display: none;
+      position: absolute;
+      inset: 8px;
+      z-index: 4;
+      margin: 0;
+      padding: 18px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+    }
+
+    body.theme-dark button.primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.theme-dark button.primary:hover {
+      background: #1d4ed8;
+    }
+
+    .settings.visible {
+      display: block;
+    }
+
+    label {
+      display: block;
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 650;
+      color: #475569;
+    }
+
+    input[type="number"] {
+      width: 72px;
+      height: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 13px;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .field label {
+      margin: 0;
+      min-width: 0;
+      line-height: 1.2;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .seg-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 9px 0;
+    }
+
+    .seg-label {
+      font-size: 12px;
+      font-weight: 650;
+      color: #475569;
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    .segmented button {
+      height: 24px;
+      width: 66px;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: transparent;
+      color: #475569;
+      font-size: 11px;
+    }
+
+    .segmented button.active {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    .setting-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="window">
+    <header class="header">
+      <div class="title-block">
+        <h1>Codex Balance</h1>
+        <div id="statusText" class="subtitle">等待刷新</div>
+      </div>
+      <div class="window-actions">
+        <button id="settingsToggle" class="icon-button" title="设置" aria-label="设置">
+          <span class="icon settings-icon" aria-hidden="true"></span>
+        </button>
+        <button id="refresh" class="icon-button" title="刷新" aria-label="刷新">
+          <span class="icon refresh-icon" aria-hidden="true"></span>
+        </button>
+        <button id="hide" class="icon-button" title="隐藏" aria-label="隐藏">
+          <span class="icon dismiss-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <svg class="rings" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="track outer-track" cx="50" cy="50" r="41"/>
+        <circle id="outerRing" class="track outer-fill" cx="50" cy="50" r="41" pathLength="100" transform="rotate(-90 50 50)"/>
+        <circle class="track inner-track" cx="50" cy="50" r="27"/>
+        <circle id="innerRing" class="track inner-fill" cx="50" cy="50" r="27" pathLength="100" transform="rotate(-90 50 50)"/>
+        <text id="ringText" x="50" y="52" class="ring-value">--%</text>
+      </svg>
+      <div>
+        <div id="heroLabel" class="hero-label">5 hour usage limit</div>
+        <div id="mainValue" class="hero-value">--%</div>
+        <div id="heroCopy" class="hero-copy">每周 --% · 尚未读取</div>
+      </div>
+    </section>
+
+    <section class="metrics">
+      <div class="metric five-hour">
+        <div class="metric-top">
+          <div id="fiveHourLabel" class="metric-name">5 hour usage limit</div>
+          <div id="fiveHour" class="metric-value">--%</div>
+        </div>
+        <div class="bar"><div id="fiveHourBar" class="bar-fill"></div></div>
+        <div class="reset">
+          <span id="fiveHourReset">未读取</span>
+          <span id="fiveHourLeft" class="left-time"></span>
+        </div>
+      </div>
+
+      <div class="metric weekly">
+        <div class="metric-top">
+          <div id="weeklyLabel" class="metric-name">Weekly usage limit</div>
+          <div id="weekly" class="metric-value">--%</div>
+        </div>
+        <div class="bar"><div id="weeklyBar" class="bar-fill"></div></div>
+        <div class="reset">
+          <span id="weeklyReset">未读取</span>
+          <span id="weeklyLeft" class="left-time"></span>
+        </div>
+      </div>
+    </section>
+
+    <div id="advice" class="advice">
+      <svg class="advice-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3.5 14.3 9.7 20.5 12 14.3 14.3 12 20.5 9.7 14.3 3.5 12 9.7 9.7 12 3.5Z"/>
+      </svg>
+      <span id="adviceText" class="advice-text">Usage advice unavailable</span>
+    </div>
+
+    <section id="settingsPanel" class="settings">
+      <div class="field">
+        <label id="refreshMinutesLabel" for="refreshMinutes">刷新频率（分钟）</label>
+        <input id="refreshMinutes" type="number" min="1" max="1440" step="1">
+      </div>
+      <div class="field">
+        <label id="warnBelowPercentLabel" for="warnBelowPercent">低余额提醒阈值（%）</label>
+        <input id="warnBelowPercent" type="number" min="1" max="100" step="1">
+      </div>
+      <label class="check">
+        <input id="notifyWhenLow" type="checkbox">
+        <span id="notifyWhenLowLabel">余额低于阈值时通知</span>
+      </label>
+      <label class="check">
+        <input id="autoRefreshOnStart" type="checkbox">
+        <span id="autoRefreshOnStartLabel">启动后自动刷新</span>
+      </label>
+      <label class="check">
+        <input id="autoLaunch" type="checkbox">
+        <span id="autoLaunchLabel">开机自动启动</span>
+      </label>
+      <div class="seg-row">
+        <div id="languageLabel" class="seg-label">语言</div>
+        <div class="segmented" data-setting="language">
+          <button id="languageZh" type="button" data-value="zh">中文</button>
+          <button id="languageEn" type="button" data-value="en">EN</button>
+        </div>
+      </div>
+      <div class="seg-row">
+        <div id="themeLabel" class="seg-label">主题</div>
+        <div class="segmented" data-setting="theme">
+          <button id="themeLight" type="button" data-value="light">浅色</button>
+          <button id="themeDark" type="button" data-value="dark">深色</button>
+        </div>
+      </div>
+      <div class="setting-actions">
+        <button id="save" class="primary">保存</button>
+        <button id="openUsage">登录页面</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const els = {
+      statusText: document.getElementById('statusText'),
+      outerRing: document.getElementById('outerRing'),
+      innerRing: document.getElementById('innerRing'),
+      ringText: document.getElementById('ringText'),
+      heroLabel: document.getElementById('heroLabel'),
+      mainValue: document.getElementById('mainValue'),
+      heroCopy: document.getElementById('heroCopy'),
+      fiveHourLabel: document.getElementById('fiveHourLabel'),
+      fiveHour: document.getElementById('fiveHour'),
+      fiveHourBar: document.getElementById('fiveHourBar'),
+      fiveHourReset: document.getElementById('fiveHourReset'),
+      fiveHourLeft: document.getElementById('fiveHourLeft'),
+      weeklyLabel: document.getElementById('weeklyLabel'),
+      weekly: document.getElementById('weekly'),
+      weeklyBar: document.getElementById('weeklyBar'),
+      weeklyReset: document.getElementById('weeklyReset'),
+      weeklyLeft: document.getElementById('weeklyLeft'),
+      refreshMinutes: document.getElementById('refreshMinutes'),
+      refreshMinutesLabel: document.getElementById('refreshMinutesLabel'),
+      warnBelowPercent: document.getElementById('warnBelowPercent'),
+      warnBelowPercentLabel: document.getElementById('warnBelowPercentLabel'),
+      notifyWhenLow: document.getElementById('notifyWhenLow'),
+      notifyWhenLowLabel: document.getElementById('notifyWhenLowLabel'),
+      autoRefreshOnStart: document.getElementById('autoRefreshOnStart'),
+      autoRefreshOnStartLabel: document.getElementById('autoRefreshOnStartLabel'),
+      autoLaunch: document.getElementById('autoLaunch'),
+      autoLaunchLabel: document.getElementById('autoLaunchLabel'),
+      languageLabel: document.getElementById('languageLabel'),
+      languageZh: document.getElementById('languageZh'),
+      languageEn: document.getElementById('languageEn'),
+      themeLabel: document.getElementById('themeLabel'),
+      themeLight: document.getElementById('themeLight'),
+      themeDark: document.getElementById('themeDark'),
+      save: document.getElementById('save'),
+      openUsage: document.getElementById('openUsage'),
+      advice: document.getElementById('advice'),
+      adviceText: document.getElementById('adviceText'),
+      settingsPanel: document.getElementById('settingsPanel')
+    };
+    let selectedLanguage = 'zh';
+    let selectedTheme = 'light';
+    let currentConfig = {};
+    let openingSettingsPage = false;
+
+    const i18n = {
+      zh: {
+        waiting: '等待刷新',
+        updated: '已更新',
+        fiveHourLimit: '5 小时使用额度',
+        weeklyLimit: '每周使用额度',
+        notRead: '未读取',
+        renewUnavailable: '恢复时间未知',
+        renewNow: '额度已恢复',
+        renewsIn: (duration) => `${duration} 后恢复`,
+        resetsAt: (date) => `重置 ${date}`,
+        resetsRaw: (text) => `重置 ${text}`,
+        left: (duration) => `剩余 ${duration}`,
+        dueNow: '现在可用',
+        refreshMinutes: '刷新频率（分钟）',
+        warnBelowPercent: '低余额提醒阈值（%）',
+        notifyWhenLow: '余额低于阈值时通知',
+        autoRefreshOnStart: '启动后自动刷新',
+        autoLaunch: '开机自动启动',
+        language: '语言',
+        chinese: '中文',
+        english: 'English',
+        theme: '主题',
+        light: '浅色',
+        dark: '深色',
+        save: '保存',
+        loginPage: '登录页面',
+        adviceUnavailable: '暂无使用建议',
+        adviceLow: '额度较低',
+        adviceWait: '额度紧张',
+        adviceKey: '用于关键任务',
+        adviceShort: '继续使用',
+        adviceGood: '可开启长任务',
+      },
+      en: {
+        waiting: 'Waiting to refresh',
+        updated: 'Updated',
+        fiveHourLimit: '5 hour usage limit',
+        weeklyLimit: 'Weekly usage limit',
+        notRead: 'Not read yet',
+        renewUnavailable: 'Renewal time unavailable',
+        renewNow: 'Renews now',
+        renewsIn: (duration) => `Renews in ${duration}`,
+        resetsAt: (date) => `Resets ${date}`,
+        resetsRaw: (text) => `Resets ${text}`,
+        left: (duration) => `${duration} left`,
+        dueNow: 'due now',
+        refreshMinutes: 'Refresh interval (min)',
+        warnBelowPercent: 'Low-balance threshold (%)',
+        notifyWhenLow: 'Notify when below threshold',
+        autoRefreshOnStart: 'Refresh on launch',
+        autoLaunch: 'Start at login',
+        language: 'Language',
+        chinese: '中文',
+        english: 'English',
+        theme: 'Theme',
+        light: 'Light',
+        dark: 'Dark',
+        save: 'Save',
+        loginPage: 'Login page',
+        adviceUnavailable: 'Usage advice unavailable',
+        adviceLow: 'Quota is low',
+        adviceWait: 'Quota is tight',
+        adviceKey: 'Use for critical tasks',
+        adviceShort: 'Keep using',
+        adviceGood: 'Ready for long tasks',
+      }
+    };
+
+    function t() {
+      return i18n[selectedLanguage] || i18n.zh;
+    }
+
+    function percentText(value) {
+      return typeof value === 'number' ? `${value}%` : '--%';
+    }
+
+    function clampPercent(value) {
+      return typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 0;
+    }
+
+    function usageColor(value, warnBelowPercent) {
+      if (typeof value !== 'number') return '#94a3b8';
+      if (value < warnBelowPercent) return '#ef4444';
+      if (value < 50) return '#f59e0b';
+      return '#22c55e';
+    }
+
+    function formatClock(timestamp) {
+      return timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }) : '';
+    }
+
+    function formatReset(resetText) {
+      const target = parseResetDate(resetText);
+      if (target) {
+        return t().resetsAt(target.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
+      }
+      return resetText ? t().resetsRaw(resetText) : t().notRead;
+    }
+
+    function parseResetDate(resetText) {
+      if (!resetText) return null;
+      const now = new Date();
+      const normalized = resetText.replace(/^重置：/, '').trim();
+      const timeOnly = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (timeOnly) {
+        let hours = Number(timeOnly[1]);
+        const minutes = Number(timeOnly[2]);
+        const period = timeOnly[3].toUpperCase();
+        if (period === 'PM' && hours < 12) hours += 12;
+        if (period === 'AM' && hours === 12) hours = 0;
+        const date = new Date(now);
+        date.setHours(hours, minutes, 0, 0);
+        if (date <= now) date.setDate(date.getDate() + 1);
+        return date;
+      }
+
+      const parsed = new Date(normalized);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function formatLeft(resetText) {
+      const target = parseResetDate(resetText);
+      if (!target) return '';
+
+      const duration = formatDurationUntil(target);
+      return duration ? t().left(duration) : t().dueNow;
+    }
+
+    function formatRenewIn(resetText) {
+      const target = parseResetDate(resetText);
+      if (!target) return t().renewUnavailable;
+
+      const duration = formatDurationUntil(target);
+      return duration ? t().renewsIn(duration) : t().renewNow;
+    }
+
+    function formatDurationUntil(target) {
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) return '';
+
+      const totalMinutes = Math.max(1, Math.round(diff / 60000));
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (selectedLanguage === 'zh') {
+        if (days > 0) return `${days}d${hours ? ` ${hours}h` : ''}`;
+        if (hours > 0) return `${hours}h${minutes ? ` ${minutes}min` : ''}`;
+        return `${minutes}min`;
+      }
+      if (days > 0) return `${days}d${hours ? ` ${hours}h` : ''}`;
+      if (hours > 0) return `${hours}h${minutes ? ` ${minutes}min` : ''}`;
+      return `${minutes}min`;
+    }
+
+    function translatedStatus(status) {
+      const map = {
+        '等待刷新': t().waiting,
+        '正在刷新': selectedLanguage === 'zh' ? '正在刷新' : 'Refreshing',
+        '已更新': t().updated,
+        '刷新失败': selectedLanguage === 'zh' ? '刷新失败' : 'Refresh failed'
+      };
+      return map[status] || status || t().waiting;
+    }
+
+    function usageAdvice(five, weekly) {
+      if (typeof five !== 'number' || typeof weekly !== 'number') {
+        return { text: t().adviceUnavailable, tone: '' };
+      }
+      if (weekly < 20) {
+        return { text: t().adviceWait, tone: 'wait' };
+      }
+      if (five < 15) {
+        return { text: t().adviceWait, tone: 'wait' };
+      }
+      if (five < 30) {
+        return { text: t().adviceLow, tone: 'low' };
+      }
+      if (weekly < 40 && five >= 30) {
+        return { text: t().adviceKey, tone: 'key' };
+      }
+      if (five >= 30 && weekly >= 40 && five < 60) {
+        return { text: t().adviceShort, tone: 'short' };
+      }
+      if (five >= 60 && weekly >= 40) {
+        return { text: t().adviceGood, tone: 'good' };
+      }
+      return { text: t().adviceKey, tone: 'key' };
+    }
+
+    function setSegmented(name, value) {
+      document.querySelectorAll(`.segmented[data-setting="${name}"] button`).forEach((button) => {
+        button.classList.toggle('active', button.dataset.value === value);
+      });
+    }
+
+    function applyTheme(theme) {
+      document.body.classList.toggle('theme-dark', theme === 'dark');
+    }
+
+    function renderStaticText() {
+      els.heroLabel.textContent = t().fiveHourLimit;
+      els.fiveHourLabel.textContent = t().fiveHourLimit;
+      els.weeklyLabel.textContent = t().weeklyLimit;
+      els.refreshMinutesLabel.textContent = t().refreshMinutes;
+      els.warnBelowPercentLabel.textContent = t().warnBelowPercent;
+      els.notifyWhenLowLabel.textContent = t().notifyWhenLow;
+      els.autoRefreshOnStartLabel.textContent = t().autoRefreshOnStart;
+      els.autoLaunchLabel.textContent = t().autoLaunch;
+      els.languageLabel.textContent = t().language;
+      els.languageZh.textContent = t().chinese;
+      els.languageEn.textContent = t().english;
+      els.themeLabel.textContent = t().theme;
+      els.themeLight.textContent = t().light;
+      els.themeDark.textContent = t().dark;
+      els.save.textContent = t().save;
+      els.openUsage.textContent = t().loginPage;
+      document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
+    }
+
+    function render({ usage, config }) {
+      currentConfig = config;
+      const five = typeof usage.fiveHour === 'number' ? usage.fiveHour : null;
+      const weekly = typeof usage.weekly === 'number' ? usage.weekly : null;
+      const main = five ?? weekly;
+      const mainColor = usageColor(main, config.warnBelowPercent);
+
+      selectedLanguage = config.language || 'zh';
+      selectedTheme = config.theme || 'light';
+      renderStaticText();
+
+      els.statusText.textContent = usage.updatedAt
+        ? `${translatedStatus(usage.status || '已更新')} · ${formatClock(usage.updatedAt)}`
+        : translatedStatus(usage.status);
+      els.mainValue.textContent = percentText(main);
+      els.ringText.textContent = percentText(main);
+      els.heroCopy.textContent = formatRenewIn(usage.fiveHourReset);
+      els.outerRing.style.strokeDasharray = `${clampPercent(five ?? weekly)} 100`;
+      els.innerRing.style.strokeDasharray = `${clampPercent(weekly)} 100`;
+      els.outerRing.style.stroke = mainColor;
+
+      els.fiveHour.textContent = percentText(five);
+      els.fiveHourBar.style.width = `${clampPercent(five)}%`;
+      els.fiveHourBar.style.background = usageColor(five, config.warnBelowPercent);
+      els.fiveHourReset.textContent = formatReset(usage.fiveHourReset);
+      els.fiveHourLeft.textContent = formatLeft(usage.fiveHourReset);
+
+      els.weekly.textContent = percentText(weekly);
+      els.weeklyBar.style.width = `${clampPercent(weekly)}%`;
+      els.weeklyReset.textContent = formatReset(usage.weeklyReset);
+      els.weeklyLeft.textContent = formatLeft(usage.weeklyReset);
+
+      const advice = usageAdvice(five, weekly);
+      els.adviceText.textContent = advice.text;
+      els.advice.className = `advice ${advice.tone}`.trim();
+
+      els.refreshMinutes.value = config.refreshMinutes;
+      els.warnBelowPercent.value = config.warnBelowPercent;
+      els.notifyWhenLow.checked = config.notifyWhenLow;
+      els.autoRefreshOnStart.checked = config.autoRefreshOnStart;
+      els.autoLaunch.checked = config.autoLaunch;
+      setSegmented('language', selectedLanguage);
+      setSegmented('theme', selectedTheme);
+      applyTheme(selectedTheme);
+
+    }
+
+    async function load() {
+      render(await window.codexBalance.getState());
+    }
+
+    document.getElementById('refresh').addEventListener('click', async () => {
+      await window.codexBalance.refresh();
+      await load();
+    });
+
+    document.getElementById('settingsToggle').addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (openingSettingsPage) return;
+      openingSettingsPage = true;
+      try {
+        await window.codexBalance.openSettingsPage();
+      } finally {
+        setTimeout(() => {
+          openingSettingsPage = false;
+        }, 350);
+      }
+    });
+
+    document.getElementById('save').addEventListener('click', async () => {
+      render(await window.codexBalance.saveConfig({
+        refreshMinutes: els.refreshMinutes.value,
+        warnBelowPercent: els.warnBelowPercent.value,
+        notifyWhenLow: els.notifyWhenLow.checked,
+        autoRefreshOnStart: els.autoRefreshOnStart.checked,
+        autoLaunch: els.autoLaunch.checked,
+        floatingStatusBar: currentConfig.floatingStatusBar !== false,
+        language: selectedLanguage,
+        theme: selectedTheme
+      }));
+      els.settingsPanel.classList.remove('visible');
+    });
+
+    document.querySelectorAll('.segmented button').forEach((button) => {
+      button.addEventListener('click', () => {
+        const setting = button.closest('.segmented').dataset.setting;
+        if (setting === 'language') selectedLanguage = button.dataset.value;
+        if (setting === 'theme') selectedTheme = button.dataset.value;
+        setSegmented(setting, button.dataset.value);
+      });
+    });
+
+    document.getElementById('openUsage').addEventListener('click', () => {
+      window.codexBalance.openUsage();
+    });
+
+    document.getElementById('hide').addEventListener('click', () => {
+      window.codexBalance.hidePanel();
+    });
+
+    window.codexBalance.onUsageUpdate(render);
+    window.codexBalance.onShowSettings(() => {
+      els.settingsPanel.classList.add('visible');
+    });
+    load();
+  </script>
+</body>
+</html>

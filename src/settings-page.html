@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Balance Settings</title>
+  <style>
+    :root {
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      color: #111827;
+      background: transparent;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 28px;
+      overflow: hidden;
+      background: transparent;
+      user-select: none;
+    }
+
+    .window {
+      width: 300px;
+      height: 360px;
+      padding: 18px 16px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.10);
+      overflow: hidden;
+    }
+
+    body.theme-dark .window {
+      background: linear-gradient(145deg, #172333 0%, #0f1a27 58%, #0b1520 100%);
+      color: #f8fafc;
+      box-shadow: 0 5px 12px rgba(2, 8, 23, 0.20);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      -webkit-app-region: drag;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .close {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 8px;
+      background: #eef2f7;
+      color: #475569;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+    }
+
+    .close:hover {
+      background: #e2e8f0;
+      color: #111827;
+    }
+
+    body.theme-dark .close {
+      background: rgba(55, 75, 100, 0.72);
+      color: #d8e5f4;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      background: currentColor;
+      mask: center / contain no-repeat;
+      -webkit-mask: center / contain no-repeat;
+    }
+
+    .dismiss-icon {
+      mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+      -webkit-mask-image: url("icons/ic_fluent_dismiss_20_regular.svg");
+    }
+
+    .field,
+    .seg-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    label,
+    .seg-label {
+      margin: 0;
+      min-width: 0;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.2;
+    }
+
+    body.theme-dark label,
+    body.theme-dark .seg-label,
+    body.theme-dark .check {
+      color: #aab8cc;
+    }
+
+    input[type="number"] {
+      width: 72px;
+      height: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 13px;
+      background: #ffffff;
+      color: #111827;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    body.theme-dark input[type="number"] {
+      background: #0d1824;
+      border-color: #33465f;
+      color: #f8fafc;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 10px 0;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .segmented {
+      display: inline-flex;
+      gap: 2px;
+      padding: 2px;
+      width: 132px;
+      border-radius: 999px;
+      background: #e2e8f0;
+    }
+
+    body.theme-dark .segmented {
+      background: #24344a;
+    }
+
+    .segmented button {
+      height: 24px;
+      flex: 1 1 0;
+      min-width: 0;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: transparent;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    body.theme-dark .segmented button {
+      color: #aab8cc;
+    }
+
+    .segmented button.active {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    body.theme-dark .segmented button.active {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .actions button {
+      height: 32px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 13px;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+      background: #e2e8f0;
+      color: #111827;
+    }
+
+    .actions .primary {
+      background: #7a6bad;
+      color: #ffffff;
+    }
+
+    .actions .primary:hover {
+      background: #6f609f;
+    }
+
+    body.theme-dark .actions button {
+      background: rgba(55, 75, 100, 0.72);
+      color: #d8e5f4;
+    }
+
+    body.theme-dark .actions .primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    body.theme-dark .actions .primary:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <main class="window">
+    <header class="header">
+      <h1>Settings</h1>
+      <button id="close" class="close" title="关闭" aria-label="关闭">
+        <span class="icon dismiss-icon" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <div class="field">
+      <label id="refreshMinutesLabel" for="refreshMinutes">刷新频率（分钟）</label>
+      <input id="refreshMinutes" type="number" min="1" max="1440" step="1">
+    </div>
+    <div class="field">
+      <label id="warnBelowPercentLabel" for="warnBelowPercent">低余额提醒阈值（%）</label>
+      <input id="warnBelowPercent" type="number" min="1" max="100" step="1">
+    </div>
+    <label class="check">
+      <input id="notifyWhenLow" type="checkbox">
+      <span id="notifyWhenLowLabel">余额低于阈值时通知</span>
+    </label>
+    <label class="check">
+      <input id="autoRefreshOnStart" type="checkbox">
+      <span id="autoRefreshOnStartLabel">启动后自动刷新</span>
+    </label>
+    <label class="check">
+      <input id="autoLaunch" type="checkbox">
+      <span id="autoLaunchLabel">开机自动启动</span>
+    </label>
+
+    <div class="seg-row">
+      <div id="languageLabel" class="seg-label">语言</div>
+      <div class="segmented" data-setting="language">
+        <button id="languageZh" type="button" data-value="zh">中文</button>
+        <button id="languageEn" type="button" data-value="en">EN</button>
+      </div>
+    </div>
+    <div class="seg-row">
+      <div id="themeLabel" class="seg-label">主题</div>
+      <div class="segmented" data-setting="theme">
+        <button id="themeLight" type="button" data-value="light">浅色</button>
+        <button id="themeDark" type="button" data-value="dark">深色</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save" class="primary">保存</button>
+      <button id="openUsage">登录页面</button>
+    </div>
+  </main>
+
+  <script>
+    const els = {
+      refreshMinutes: document.getElementById('refreshMinutes'),
+      refreshMinutesLabel: document.getElementById('refreshMinutesLabel'),
+      warnBelowPercent: document.getElementById('warnBelowPercent'),
+      warnBelowPercentLabel: document.getElementById('warnBelowPercentLabel'),
+      notifyWhenLow: document.getElementById('notifyWhenLow'),
+      notifyWhenLowLabel: document.getElementById('notifyWhenLowLabel'),
+      autoRefreshOnStart: document.getElementById('autoRefreshOnStart'),
+      autoRefreshOnStartLabel: document.getElementById('autoRefreshOnStartLabel'),
+      autoLaunch: document.getElementById('autoLaunch'),
+      autoLaunchLabel: document.getElementById('autoLaunchLabel'),
+      languageLabel: document.getElementById('languageLabel'),
+      languageZh: document.getElementById('languageZh'),
+      languageEn: document.getElementById('languageEn'),
+      themeLabel: document.getElementById('themeLabel'),
+      themeLight: document.getElementById('themeLight'),
+      themeDark: document.getElementById('themeDark'),
+      save: document.getElementById('save'),
+      openUsage: document.getElementById('openUsage')
+    };
+
+    let selectedLanguage = 'zh';
+    let selectedTheme = 'light';
+    let currentConfig = {};
+
+    const i18n = {
+      zh: {
+        title: '设置',
+        refreshMinutes: '刷新频率（分钟）',
+        warnBelowPercent: '低余额提醒阈值（%）',
+        notifyWhenLow: '余额低于阈值时通知',
+        autoRefreshOnStart: '启动后自动刷新',
+        autoLaunch: '开机自动启动',
+        language: '语言',
+        chinese: '中文',
+        english: 'English',
+        theme: '主题',
+        light: '浅色',
+        dark: '深色',
+        save: '保存',
+        loginPage: '登录页面'
+      },
+      en: {
+        title: 'Settings',
+        refreshMinutes: 'Refresh interval (min)',
+        warnBelowPercent: 'Low-balance threshold (%)',
+        notifyWhenLow: 'Notify when below threshold',
+        autoRefreshOnStart: 'Refresh on launch',
+        autoLaunch: 'Start at login',
+        language: 'Language',
+        chinese: '中文',
+        english: 'English',
+        theme: 'Theme',
+        light: 'Light',
+        dark: 'Dark',
+        save: 'Save',
+        loginPage: 'Login page'
+      }
+    };
+
+    function t() {
+      return i18n[selectedLanguage] || i18n.zh;
+    }
+
+    function setSegmented(name, value) {
+      document.querySelectorAll(`.segmented[data-setting="${name}"] button`).forEach((button) => {
+        button.classList.toggle('active', button.dataset.value === value);
+      });
+    }
+
+    function renderStaticText() {
+      document.querySelector('h1').textContent = t().title;
+      els.refreshMinutesLabel.textContent = t().refreshMinutes;
+      els.warnBelowPercentLabel.textContent = t().warnBelowPercent;
+      els.notifyWhenLowLabel.textContent = t().notifyWhenLow;
+      els.autoRefreshOnStartLabel.textContent = t().autoRefreshOnStart;
+      els.autoLaunchLabel.textContent = t().autoLaunch;
+      els.languageLabel.textContent = t().language;
+      els.languageZh.textContent = t().chinese;
+      els.languageEn.textContent = t().english;
+      els.themeLabel.textContent = t().theme;
+      els.themeLight.textContent = t().light;
+      els.themeDark.textContent = t().dark;
+      els.save.textContent = t().save;
+      els.openUsage.textContent = t().loginPage;
+      document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
+    }
+
+    function render({ config }) {
+      currentConfig = config;
+      selectedLanguage = config.language || 'zh';
+      selectedTheme = config.theme || 'light';
+      document.body.classList.toggle('theme-dark', selectedTheme === 'dark');
+      renderStaticText();
+      els.refreshMinutes.value = config.refreshMinutes;
+      els.warnBelowPercent.value = config.warnBelowPercent;
+      els.notifyWhenLow.checked = config.notifyWhenLow;
+      els.autoRefreshOnStart.checked = config.autoRefreshOnStart;
+      els.autoLaunch.checked = config.autoLaunch;
+      setSegmented('language', selectedLanguage);
+      setSegmented('theme', selectedTheme);
+    }
+
+    async function load() {
+      render(await window.codexBalance.getState());
+    }
+
+    document.querySelectorAll('.segmented button').forEach((button) => {
+      button.addEventListener('click', () => {
+        const setting = button.closest('.segmented').dataset.setting;
+        if (setting === 'language') selectedLanguage = button.dataset.value;
+        if (setting === 'theme') selectedTheme = button.dataset.value;
+        setSegmented(setting, button.dataset.value);
+      });
+    });
+
+    document.getElementById('save').addEventListener('click', async () => {
+      render(await window.codexBalance.saveConfig({
+        refreshMinutes: els.refreshMinutes.value,
+        warnBelowPercent: els.warnBelowPercent.value,
+        notifyWhenLow: els.notifyWhenLow.checked,
+        autoRefreshOnStart: els.autoRefreshOnStart.checked,
+        autoLaunch: els.autoLaunch.checked,
+        floatingStatusBar: currentConfig.floatingStatusBar !== false,
+        language: selectedLanguage,
+        theme: selectedTheme
+      }));
+      window.codexBalance.hideSettingsPage();
+    });
+
+    document.getElementById('openUsage').addEventListener('click', () => {
+      window.codexBalance.openUsage();
+    });
+
+    document.getElementById('close').addEventListener('click', () => {
+      window.codexBalance.hideSettingsPage();
+    });
+
+    window.codexBalance.onUsageUpdate(render);
+    load();
+  </script>
+</body>
+</html>
