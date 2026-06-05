@@ -33,11 +33,14 @@ let lastPanelToggleAt = 0;
 let panelReady = false;
 let pendingPanelShow = false;
 let panelVisible = false;
+let panelDestroyTimer = null;
+let lastPanelBounds = null;
 let trayMenuVisible = false;
 let lastTrayMenuToggleAt = 0;
 let lastSettingsPageShowAt = 0;
 const PANEL_WINDOW_SIZE = { width: 356, height: 416 };
 const STATUS_WINDOW_SIZE = { width: 226, height: 78 };
+const PANEL_DESTROY_DELAY_MS = 30000;
 let lastUsage = {
   status: '等待刷新',
   fiveHour: null,
@@ -591,6 +594,9 @@ function showPanel({ toggle = false } = {}) {
     return;
   }
 
+  hideSettingsPage();
+  clearPanelDestroyTimer();
+
   if (!settingsWindow || settingsWindow.isDestroyed()) {
     pendingPanelShow = true;
     createSettingsWindow();
@@ -612,6 +618,7 @@ function showPanel({ toggle = false } = {}) {
 
 function createSettingsWindow() {
   if (settingsWindow && !settingsWindow.isDestroyed()) return;
+  clearPanelDestroyTimer();
   panelReady = false;
   settingsWindow = new BrowserWindow({
     width: PANEL_WINDOW_SIZE.width,
@@ -637,6 +644,7 @@ function createSettingsWindow() {
     panelReady = false;
     pendingPanelShow = false;
     panelVisible = false;
+    clearPanelDestroyTimer();
   });
 
   settingsWindow.once('ready-to-show', () => {
@@ -654,6 +662,11 @@ function createSettingsWindow() {
 
 function showSettingsPage() {
   hideTrayMenu();
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    lastPanelBounds = settingsWindow.getBounds();
+  }
+  hidePanel({ destroy: true });
+
   const now = Date.now();
   if (now - lastSettingsPageShowAt < 350) return;
   lastSettingsPageShowAt = now;
@@ -753,6 +766,9 @@ function showTrayMenu() {
   if (now - lastTrayMenuToggleAt < 520) return;
   lastTrayMenuToggleAt = now;
 
+  hidePanel({ destroy: true });
+  hideSettingsPage();
+
   if (trayMenuWindow && !trayMenuWindow.isDestroyed()) {
     positionWindowNearTray(trayMenuWindow);
     if (!trayMenuVisible) {
@@ -798,7 +814,7 @@ function showTrayMenu() {
 
 function hideTrayMenu() {
   if (trayMenuWindow && !trayMenuWindow.isDestroyed()) {
-    trayMenuWindow.hide();
+    trayMenuWindow.close();
   }
   trayMenuVisible = false;
 }
@@ -875,17 +891,36 @@ function positionWindowNearTray(win) {
 
 function positionSettingsPageWindow(win) {
   win.setSize(PANEL_WINDOW_SIZE.width, PANEL_WINDOW_SIZE.height, false);
-  if (settingsWindow && !settingsWindow.isDestroyed() && panelVisible) {
-    const bounds = settingsWindow.getBounds();
-    win.setPosition(bounds.x, bounds.y, false);
+  if (lastPanelBounds) {
+    win.setPosition(lastPanelBounds.x, lastPanelBounds.y, false);
+    lastPanelBounds = null;
     return;
   }
   positionWindowNearTray(win);
 }
 
-function hidePanel() {
+function clearPanelDestroyTimer() {
+  if (panelDestroyTimer) {
+    clearTimeout(panelDestroyTimer);
+    panelDestroyTimer = null;
+  }
+}
+
+function hidePanel({ destroy = false } = {}) {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.close();
+    lastPanelBounds = settingsWindow.getBounds();
+    if (destroy) {
+      settingsWindow.close();
+    } else {
+      settingsWindow.hide();
+      clearPanelDestroyTimer();
+      panelDestroyTimer = setTimeout(() => {
+        panelDestroyTimer = null;
+        if (settingsWindow && !settingsWindow.isDestroyed() && !panelVisible) {
+          settingsWindow.close();
+        }
+      }, PANEL_DESTROY_DELAY_MS);
+    }
   }
   pendingPanelShow = false;
   panelVisible = false;
