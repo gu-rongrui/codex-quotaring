@@ -14,7 +14,7 @@ const PAGE_LOAD_TIMEOUT_MS = 45000;
 const PAGE_READ_TIMEOUT_MS = 15000;
 const USAGE_CONTENT_TIMEOUT_MS = 25000;
 const APP_ROOT = path.resolve(__dirname, '..');
-const USER_DATA_DIR = app.isPackaged ? path.join(app.getPath('appData'), 'Codex Balance Tray') : path.join(APP_ROOT, 'userdata');
+const USER_DATA_DIR = path.join(APP_ROOT, 'userdata');
 const CACHE_DIR = path.join(USER_DATA_DIR, 'cache');
 
 fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -103,7 +103,7 @@ function syncAutoLaunch() {
     app.setLoginItemSettings({
       openAtLogin: Boolean(config.autoLaunch),
       path: process.execPath,
-      args: app.isPackaged ? [] : [APP_ROOT]
+      args: [APP_ROOT]
     });
   } catch {
     // Login item support varies between packaged and dev Electron runs.
@@ -456,16 +456,24 @@ async function readUsageFromPageOnce(win) {
         const compact = text.replace(/\\r/g, '');
         const lines = compact.split('\\n').map((line) => line.trim()).filter(Boolean);
         const percentPattern = /(\\d{1,3})\\s*%/;
+        const fivePatterns = [
+          /5\\s*[- ]?\\s*hour/i,
+          /5\\s*[- ]?\\s*h\\b/i,
+          /five\\s*[- ]?\\s*hour/i,
+          /5\\s*小时/,
+          /小时额度/,
+          /5\\s*小时额度/
+        ];
+        const weeklyPatterns = [
+          /weekly/i,
+          /week\\s*(?:limit|usage|quota)/i,
+          /每周/,
+          /周额度/
+        ];
         const toPercent = (match) => {
           if (!match) return null;
           const value = Number(match[1]);
           return value >= 0 && value <= 100 ? value : null;
-        };
-        const findBlock = (patterns) => {
-          const index = lines.findIndex((line) => patterns.some((pattern) => pattern.test(line)));
-          if (index < 0) return null;
-          const start = Math.max(0, index - 6);
-          return lines.slice(start, index + 18).join('\\n');
         };
         const parsePercent = (block) => {
           if (!block) return null;
@@ -476,56 +484,55 @@ async function readUsageFromPageOnce(win) {
           const match = block.match(/(?:Resets?|Reset|Renews?|Renewal|恢复|重置)\\s*(?:in|at)?\\s*[:：]?\\s*([^\\n]+)/i);
           return match ? match[1].trim() : null;
         };
-        const findNearestPercent = (patterns) => {
-          const anchors = [];
-          lines.forEach((line, index) => {
-            if (patterns.some((pattern) => pattern.test(line))) anchors.push(index);
-          });
-          let best = null;
-          for (const anchor of anchors) {
-            const start = Math.max(0, anchor - 8);
-            const end = Math.min(lines.length - 1, anchor + 18);
-            for (let index = start; index <= end; index += 1) {
-              const value = toPercent(lines[index].match(percentPattern));
-              if (value === null) continue;
-              const distance = Math.abs(index - anchor);
-              if (!best || distance < best.distance) best = { value, distance };
+        const hasAny = (value, patterns) => patterns.some((pattern) => pattern.test(value));
+        const metricFromDom = (patterns, otherPatterns) => {
+          const elements = Array.from(document.querySelectorAll('body *'))
+            .filter((element) => {
+              const ownText = Array.from(element.childNodes)
+                .filter((node) => node.nodeType === Node.TEXT_NODE)
+                .map((node) => node.textContent.trim())
+                .filter(Boolean)
+                .join(' ');
+              return hasAny(ownText || element.textContent || '', patterns);
+            });
+          const candidates = [];
+          for (const element of elements) {
+            let current = element;
+            for (let depth = 0; current && depth < 8; depth += 1, current = current.parentElement) {
+              const block = (current.innerText || '').replace(/\\r/g, '').trim();
+              if (!block || block.length > 900 || !percentPattern.test(block)) continue;
+              const hasTarget = hasAny(block, patterns);
+              if (!hasTarget) continue;
+              const hasOther = hasAny(block, otherPatterns);
+              const hasReset = /Resets?|Reset|Renews?|Renewal|恢复|重置/i.test(block);
+              candidates.push({
+                block,
+                score: (hasOther ? 1000 : 0) + (hasReset ? 0 : 120) + block.length + depth * 20
+              });
             }
           }
-          return best ? best.value : null;
+          candidates.sort((a, b) => a.score - b.score);
+          return candidates[0]?.block || null;
         };
-        const fiveCard = findBlock([
-          /5\\s*[- ]?\\s*hour/i,
-          /5\\s*[- ]?\\s*h\\b/i,
-          /five\\s*[- ]?\\s*hour/i,
-          /five\\s*hour/i,
-          /5\\s*小时/,
-          /小时额度/,
-          /5\\s*小时额度/
-        ]);
-        const weeklyCard = findBlock([
-          /weekly/i,
-          /week\\s*(?:limit|usage|quota)/i,
-          /每周/,
-          /周额度/
-        ]);
+        const metricFromLines = (patterns, otherPatterns) => {
+          const anchor = lines.findIndex((line) => hasAny(line, patterns));
+          if (anchor < 0) return null;
+          const collected = [];
+          for (let index = anchor; index < Math.min(lines.length, anchor + 14); index += 1) {
+            if (index > anchor && hasAny(lines[index], otherPatterns)) break;
+            collected.push(lines[index]);
+          }
+          const block = collected.join('\\n');
+          return percentPattern.test(block) ? block : null;
+        };
+        const fiveCard = metricFromDom(fivePatterns, weeklyPatterns) || metricFromLines(fivePatterns, weeklyPatterns);
+        const weeklyCard = metricFromDom(weeklyPatterns, fivePatterns) || metricFromLines(weeklyPatterns, fivePatterns);
         return {
           title: document.title,
           href: location.href,
           textSample: compact.slice(0, 800),
-          fiveHour: parsePercent(fiveCard) ?? findNearestPercent([
-            /5\\s*[- ]?\\s*hour/i,
-            /5\\s*[- ]?\\s*h\\b/i,
-            /five\\s*[- ]?\\s*hour/i,
-            /5\\s*小时/,
-            /小时额度/
-          ]),
-          weekly: parsePercent(weeklyCard) ?? findNearestPercent([
-            /weekly/i,
-            /week\\s*(?:limit|usage|quota)/i,
-            /每周/,
-            /周额度/
-          ]),
+          fiveHour: parsePercent(fiveCard),
+          weekly: parsePercent(weeklyCard),
           fiveHourReset: parseReset(fiveCard),
           weeklyReset: parseReset(weeklyCard)
         };

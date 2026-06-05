@@ -170,6 +170,14 @@
       color: #475569;
     }
 
+    input[type="checkbox"] {
+      accent-color: #f59e0b;
+    }
+
+    body.theme-dark input[type="checkbox"] {
+      accent-color: #2563eb;
+    }
+
     .segmented {
       display: inline-flex;
       gap: 2px;
@@ -235,7 +243,11 @@
     }
 
     .actions .primary:hover {
-      background: #6f609f;
+      background: #d97706;
+    }
+
+    .actions .primary:active {
+      background: #b45309;
     }
 
     body.theme-dark .actions button {
