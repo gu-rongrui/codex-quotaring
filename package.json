@@ -1,6 +1,6 @@
 {
   "name": "codex-quotaring",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows tray monitor for ChatGPT Codex balance, 5 hour usage limit, and weekly usage limit.",
   "main": "src/main.js",
   "scripts": {
@@ -13,6 +13,7 @@
   "build": {
     "appId": "com.codexquotaring.app",
     "productName": "Codex QuotaRing",
+    "artifactName": "Codex-QuotaRing-Setup-${version}.${ext}",
     "electronDist": "node_modules/electron/dist",
     "directories": {
       "output": "dist"
