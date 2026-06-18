@@ -151,6 +151,14 @@
       color: #64748b;
     }
 
+    .subtitle.failed {
+      color: #ef4444;
+    }
+
+    body.theme-dark .subtitle.failed {
+      color: #f87171;
+    }
+
     .title-block {
       min-width: 0;
     }
@@ -991,8 +999,10 @@
       els.statusText.textContent = usage.updatedAt
         ? `${translatedStatus(usage.status || '已更新')} · ${formatClock(usage.updatedAt)}`
         : translatedStatus(usage.status);
+      const failed = usage.status === '刷新失败' || Boolean(usage.error);
+      els.statusText.classList.toggle('failed', failed);
       els.mainValue.textContent = percentText(main);
-      els.ringText.textContent = percentText(main);
+      els.ringText.textContent = percentText(weekly);
       els.heroCopy.textContent = formatRenewIn(usage.fiveHourReset);
       els.outerRing.style.strokeDasharray = `${clampPercent(five ?? weekly)} 100`;
       els.innerRing.style.strokeDasharray = `${clampPercent(weekly)} 100`;
