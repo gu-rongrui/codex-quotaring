@@ -14,11 +14,14 @@ const PAGE_LOAD_TIMEOUT_MS = 45000;
 const PAGE_READ_TIMEOUT_MS = 15000;
 const USAGE_CONTENT_TIMEOUT_MS = 25000;
 const APP_ROOT = path.resolve(__dirname, '..');
-const USER_DATA_DIR = path.join(APP_ROOT, 'userdata');
+
+app.setName('Codex QuotaRing');
+const USER_DATA_DIR = app.isPackaged
+  ? path.join(app.getPath('appData'), 'Codex QuotaRing')
+  : path.join(APP_ROOT, 'userdata');
 const CACHE_DIR = path.join(USER_DATA_DIR, 'cache');
 
 fs.mkdirSync(CACHE_DIR, { recursive: true });
-app.setName('Codex QuotaRing');
 app.setPath('userData', USER_DATA_DIR);
 app.commandLine.appendSwitch('disk-cache-dir', CACHE_DIR);
 app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
@@ -103,7 +106,7 @@ function syncAutoLaunch() {
     app.setLoginItemSettings({
       openAtLogin: Boolean(config.autoLaunch),
       path: process.execPath,
-      args: [APP_ROOT]
+      args: app.isPackaged ? [] : [APP_ROOT]
     });
   } catch {
     // Login item support varies between packaged and dev Electron runs.
