@@ -162,7 +162,7 @@
       refresh: document.getElementById('refresh')
     };
 
-    let selectedLanguage = 'zh';
+    let selectedLanguage = 'en';
 
     function clampPercent(value) {
       return typeof value === 'number' ? Math.max(0, Math.min(100, value)) : 0;
@@ -183,7 +183,34 @@
     function parseResetDate(resetText) {
       if (!resetText) return null;
       const now = new Date();
-      const normalized = resetText.replace(/^重置：/, '').trim();
+      const normalized = cleanResetText(resetText);
+
+      const chineseFull = normalized.match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?\s*(\d{1,2})[:：](\d{2})/);
+      if (chineseFull) {
+        return new Date(
+          Number(chineseFull[1]),
+          Number(chineseFull[2]) - 1,
+          Number(chineseFull[3]),
+          Number(chineseFull[4]),
+          Number(chineseFull[5]),
+          0,
+          0
+        );
+      }
+
+      const numericFull = normalized.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s+(\d{1,2})[:：](\d{2})/);
+      if (numericFull) {
+        return new Date(
+          Number(numericFull[1]),
+          Number(numericFull[2]) - 1,
+          Number(numericFull[3]),
+          Number(numericFull[4]),
+          Number(numericFull[5]),
+          0,
+          0
+        );
+      }
+
       const timeOnly = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
       if (timeOnly) {
         let hours = Number(timeOnly[1]);
@@ -199,6 +226,23 @@
 
       const parsed = new Date(normalized);
       return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function resetExpired(resetText) {
+      const target = parseResetDate(resetText);
+      return Boolean(target && target.getTime() <= Date.now());
+    }
+
+    function shouldShowNotUpdated(resetText, usage) {
+      return (usage.status === '刷新失败' || Boolean(usage.error)) && resetExpired(resetText);
+    }
+
+    function cleanResetText(resetText) {
+      return String(resetText || '')
+        .replace(/^重置\s*(?:时间)?\s*[:：]?\s*/i, '')
+        .replace(/^时间\s*[:：]?\s*/i, '')
+        .replace(/^reset(?:s)?\s*(?:time)?\s*[:：]?\s*/i, '')
+        .trim();
     }
 
     function formatDurationUntil(resetText) {
@@ -219,7 +263,7 @@
     }
 
     function render({ usage, config }) {
-      selectedLanguage = config.language === 'en' ? 'en' : 'zh';
+      selectedLanguage = config.language === 'zh' ? 'zh' : 'en';
       document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
       document.body.classList.toggle('theme-dark', config.theme === 'dark');
 
@@ -228,8 +272,12 @@
       els.bar.style.setProperty('--progress', `${clampPercent(five)}%`);
       els.bar.style.setProperty('--progress-color', color);
       els.percent.textContent = percentText(five);
-      const duration = formatDurationUntil(usage.fiveHourReset);
-      els.remaining.textContent = selectedLanguage === 'en' ? `${duration} left` : `剩余 ${duration}`;
+      if (shouldShowNotUpdated(usage.fiveHourReset, usage)) {
+        els.remaining.textContent = selectedLanguage === 'en' ? 'Not updated' : '未更新';
+      } else {
+        const duration = formatDurationUntil(usage.fiveHourReset);
+        els.remaining.textContent = selectedLanguage === 'en' ? `${duration} left` : `剩余 ${duration}`;
+      }
     }
 
     async function load() {

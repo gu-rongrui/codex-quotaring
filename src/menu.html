@@ -275,7 +275,7 @@
       quit: document.getElementById('quit')
     };
 
-    let selectedLanguage = 'zh';
+    let selectedLanguage = 'en';
     let currentConfig = null;
 
     function usageLine(label, value, reset) {
@@ -284,7 +284,7 @@
     }
 
     function render({ usage, config }) {
-      selectedLanguage = config.language === 'en' ? 'en' : 'zh';
+      selectedLanguage = config.language === 'zh' ? 'zh' : 'en';
       document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
       document.body.classList.toggle('theme-dark', config.theme === 'dark');
       currentConfig = config;

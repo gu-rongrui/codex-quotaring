@@ -151,6 +151,21 @@
       color: #64748b;
     }
 
+    .debug-line {
+      margin-top: 3px;
+      max-width: 190px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #94a3b8;
+      font-size: 10px;
+      line-height: 1.2;
+    }
+
+    body.theme-dark .debug-line {
+      color: #8ea3bd;
+    }
+
     .subtitle.failed {
       color: #ef4444;
     }
@@ -613,6 +628,7 @@
       <div class="title-block">
         <h1>Codex Balance</h1>
         <div id="statusText" class="subtitle">等待刷新</div>
+        <div id="debugText" class="debug-line">Idle</div>
       </div>
       <div class="window-actions">
         <button id="settingsToggle" class="icon-button" title="设置" aria-label="设置">
@@ -721,6 +737,7 @@
   <script>
     const els = {
       statusText: document.getElementById('statusText'),
+      debugText: document.getElementById('debugText'),
       outerRing: document.getElementById('outerRing'),
       innerRing: document.getElementById('innerRing'),
       ringText: document.getElementById('ringText'),
@@ -759,7 +776,7 @@
       adviceText: document.getElementById('adviceText'),
       settingsPanel: document.getElementById('settingsPanel')
     };
-    let selectedLanguage = 'zh';
+    let selectedLanguage = 'en';
     let selectedTheme = 'light';
     let currentConfig = {};
     let openingSettingsPage = false;
@@ -771,6 +788,7 @@
         fiveHourLimit: '5 小时使用额度',
         weeklyLimit: '每周使用额度',
         notRead: '未读取',
+        fullyAvailable: '额度已满',
         renewUnavailable: '恢复时间未知',
         renewNow: '额度已恢复',
         renewsIn: (duration) => `${duration} 后恢复`,
@@ -804,6 +822,7 @@
         fiveHourLimit: '5 hour usage limit',
         weeklyLimit: 'Weekly usage limit',
         notRead: 'Not read yet',
+        fullyAvailable: 'Fully available',
         renewUnavailable: 'Renewal time unavailable',
         renewNow: 'Renews now',
         renewsIn: (duration) => `Renews in ${duration}`,
@@ -853,21 +872,60 @@
     }
 
     function formatClock(timestamp) {
-      return timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }) : '';
+      const locale = selectedLanguage === 'en' ? 'en-US' : 'zh-CN';
+      return timestamp ? new Date(timestamp).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', second: '2-digit' }) : '';
     }
 
-    function formatReset(resetText) {
+    function formatReset(resetText, value = null) {
+      if (!resetText && value === 100) return t().fullyAvailable;
       const target = parseResetDate(resetText);
       if (target) {
-        return t().resetsAt(target.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }));
+        const locale = selectedLanguage === 'en' ? 'en-US' : 'zh-CN';
+        const formatted = target.toLocaleString(locale, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return t().resetsAt(formatted);
       }
-      return resetText ? t().resetsRaw(resetText) : t().notRead;
+      return resetText ? t().resetsRaw(cleanResetText(resetText)) : t().notRead;
+    }
+
+    function cleanResetText(resetText) {
+      return String(resetText || '')
+        .replace(/^重置\s*(?:时间)?\s*[:：]?\s*/i, '')
+        .replace(/^时间\s*[:：]?\s*/i, '')
+        .replace(/^reset(?:s)?\s*(?:time)?\s*[:：]?\s*/i, '')
+        .trim();
     }
 
     function parseResetDate(resetText) {
       if (!resetText) return null;
       const now = new Date();
-      const normalized = resetText.replace(/^重置：/, '').trim();
+      const normalized = cleanResetText(resetText);
+
+      const chineseFull = normalized.match(/(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日?\s*(\d{1,2})[:：](\d{2})/);
+      if (chineseFull) {
+        return new Date(
+          Number(chineseFull[1]),
+          Number(chineseFull[2]) - 1,
+          Number(chineseFull[3]),
+          Number(chineseFull[4]),
+          Number(chineseFull[5]),
+          0,
+          0
+        );
+      }
+
+      const numericFull = normalized.match(/(\d{4})[/-](\d{1,2})[/-](\d{1,2})\s+(\d{1,2})[:：](\d{2})/);
+      if (numericFull) {
+        return new Date(
+          Number(numericFull[1]),
+          Number(numericFull[2]) - 1,
+          Number(numericFull[3]),
+          Number(numericFull[4]),
+          Number(numericFull[5]),
+          0,
+          0
+        );
+      }
+
       const timeOnly = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
       if (timeOnly) {
         let hours = Number(timeOnly[1]);
@@ -885,7 +943,17 @@
       return Number.isNaN(parsed.getTime()) ? null : parsed;
     }
 
-    function formatLeft(resetText) {
+    function resetExpired(resetText) {
+      const target = parseResetDate(resetText);
+      return Boolean(target && target.getTime() <= Date.now());
+    }
+
+    function shouldSuppressExpiredReset(resetText, usage) {
+      return (usage.status === '刷新失败' || Boolean(usage.error)) && resetExpired(resetText);
+    }
+
+    function formatLeft(resetText, usage) {
+      if (shouldSuppressExpiredReset(resetText, usage)) return '';
       const target = parseResetDate(resetText);
       if (!target) return '';
 
@@ -893,7 +961,8 @@
       return duration ? t().left(duration) : t().dueNow;
     }
 
-    function formatRenewIn(resetText) {
+    function formatRenewIn(resetText, usage) {
+      if (shouldSuppressExpiredReset(resetText, usage)) return t().renewUnavailable;
       const target = parseResetDate(resetText);
       if (!target) return t().renewUnavailable;
 
@@ -928,6 +997,32 @@
         '刷新失败': selectedLanguage === 'zh' ? '刷新失败' : 'Refresh failed'
       };
       return map[status] || status || t().waiting;
+    }
+
+    function translatedDebugStage(stage) {
+      if (!stage) return selectedLanguage === 'zh' ? '诊断：空闲' : 'Debug: Idle';
+      if (selectedLanguage !== 'zh') return `Debug: ${stage}`;
+
+      const map = {
+        'Idle': '空闲',
+        'Refresh started': '刷新已开始',
+        'Refreshing page data': '正在刷新页面数据',
+        'Hard reloading usage page': '正在强制刷新使用页面',
+        'Reading refreshed page': '正在读取刷新后的页面',
+        'Reading current page': '正在读取当前页面',
+        'Opening usage page': '正在打开使用页面',
+        'Waiting for page load': '正在等待页面加载',
+        'Reloading usage page': '正在重新加载使用页面',
+        'Reopening usage page': '正在重新打开使用页面',
+        'Waiting for usage content': '正在等待余额内容',
+        'Parsing usage content': '正在解析余额内容',
+        'Read succeeded': '读取成功'
+      };
+
+      if (/^Reading usage data/.test(stage)) return '诊断：正在读取余额数据';
+      if (/^Retrying after reload/.test(stage)) return '诊断：重载后重试读取';
+      if (/^Failed:/.test(stage)) return `诊断：失败 - ${stage.replace(/^Failed:\s*/, '')}`;
+      return `诊断：${map[stage] || stage}`;
     }
 
     function usageAdvice(five, weekly) {
@@ -992,7 +1087,7 @@
       const main = five ?? weekly;
       const mainColor = usageColor(main, config.warnBelowPercent);
 
-      selectedLanguage = config.language || 'zh';
+      selectedLanguage = config.language === 'zh' ? 'zh' : 'en';
       selectedTheme = config.theme || 'light';
       renderStaticText();
 
@@ -1001,9 +1096,11 @@
         : translatedStatus(usage.status);
       const failed = usage.status === '刷新失败' || Boolean(usage.error);
       els.statusText.classList.toggle('failed', failed);
+      els.debugText.textContent = translatedDebugStage(usage.debugStage);
+      els.debugText.title = usage.debugStage || '';
       els.mainValue.textContent = percentText(main);
       els.ringText.textContent = percentText(weekly);
-      els.heroCopy.textContent = formatRenewIn(usage.fiveHourReset);
+      els.heroCopy.textContent = formatRenewIn(usage.fiveHourReset, usage);
       els.outerRing.style.strokeDasharray = `${clampPercent(five ?? weekly)} 100`;
       els.innerRing.style.strokeDasharray = `${clampPercent(weekly)} 100`;
       els.outerRing.style.stroke = mainColor;
@@ -1011,13 +1108,13 @@
       els.fiveHour.textContent = percentText(five);
       els.fiveHourBar.style.width = `${clampPercent(five)}%`;
       els.fiveHourBar.style.background = usageColor(five, config.warnBelowPercent);
-      els.fiveHourReset.textContent = formatReset(usage.fiveHourReset);
-      els.fiveHourLeft.textContent = formatLeft(usage.fiveHourReset);
+      els.fiveHourReset.textContent = formatReset(usage.fiveHourReset, five);
+      els.fiveHourLeft.textContent = formatLeft(usage.fiveHourReset, usage);
 
       els.weekly.textContent = percentText(weekly);
       els.weeklyBar.style.width = `${clampPercent(weekly)}%`;
-      els.weeklyReset.textContent = formatReset(usage.weeklyReset);
-      els.weeklyLeft.textContent = formatLeft(usage.weeklyReset);
+      els.weeklyReset.textContent = formatReset(usage.weeklyReset, weekly);
+      els.weeklyLeft.textContent = formatLeft(usage.weeklyReset, usage);
 
       const advice = usageAdvice(five, weekly);
       els.adviceText.textContent = advice.text;

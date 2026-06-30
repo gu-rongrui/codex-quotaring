@@ -10,16 +10,19 @@ try {
 
 const USAGE_URL = 'https://chatgpt.com/codex/cloud/settings/analytics#usage';
 const USAGE_BASE_URL = USAGE_URL.split('#')[0];
-const PAGE_LOAD_TIMEOUT_MS = 45000;
-const PAGE_READ_TIMEOUT_MS = 15000;
-const USAGE_CONTENT_TIMEOUT_MS = 25000;
+const PAGE_LOAD_TIMEOUT_MS = 90000;
+const PAGE_READ_TIMEOUT_MS = 25000;
+const USAGE_CONTENT_TIMEOUT_MS = 60000;
+const REFRESH_TOTAL_TIMEOUT_MS = 120000;
 const APP_ROOT = path.resolve(__dirname, '..');
+const APP_VERSION = readAppVersion();
 
 app.setName('Codex QuotaRing');
 const USER_DATA_DIR = app.isPackaged
   ? path.join(app.getPath('appData'), 'Codex QuotaRing')
   : path.join(APP_ROOT, 'userdata');
 const CACHE_DIR = path.join(USER_DATA_DIR, 'cache');
+const DEBUG_LOG_PATH = path.join(USER_DATA_DIR, 'debug.log');
 
 fs.mkdirSync(CACHE_DIR, { recursive: true });
 app.setPath('userData', USER_DATA_DIR);
@@ -40,6 +43,8 @@ let browserWindow;
 let refreshTimer;
 let updateTimer;
 let activeRefreshPromise = null;
+let activeRefreshStartedAt = 0;
+let refreshGeneration = 0;
 let lastPanelToggleAt = 0;
 let panelReady = false;
 let pendingPanelShow = false;
@@ -59,7 +64,8 @@ let lastUsage = {
   fiveHourReset: null,
   weeklyReset: null,
   updatedAt: null,
-  error: null
+  error: null,
+  debugStage: 'Idle'
 };
 
 const defaultConfig = {
@@ -92,13 +98,42 @@ function saveConfig(nextConfig) {
   fs.writeFileSync(configPath(), JSON.stringify(nextConfig, null, 2));
 }
 
+function writeDebugLog(stage, details = {}) {
+  try {
+    fs.mkdirSync(app.getPath('userData'), { recursive: true });
+    const entry = {
+      time: new Date().toISOString(),
+      stage,
+      ...details
+    };
+    fs.appendFileSync(DEBUG_LOG_PATH, `${JSON.stringify(entry)}\n`);
+  } catch {
+    // Diagnostics must never block the tray app.
+  }
+}
+
+function setDebugStage(stage, details = {}) {
+  lastUsage = { ...lastUsage, debugStage: stage };
+  writeDebugLog(stage, details);
+  updateTray();
+}
+
 let config = loadConfig();
 
 function publicConfig() {
   return {
     ...config,
-    appVersion: app.getVersion()
+    appVersion: APP_VERSION
   };
+}
+
+function readAppVersion() {
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8'));
+    return packageJson.version || app.getVersion();
+  } catch {
+    return app.getVersion();
+  }
 }
 
 function syncAutoLaunch() {
@@ -253,16 +288,22 @@ function showLowBalanceNotification() {
   const values = [lastUsage.fiveHour, lastUsage.weekly].filter((value) => typeof value === 'number');
   if (!values.some((value) => value <= config.warnBelowPercent)) return;
 
+  const en = config.language === 'en';
   new Notification({
-    title: 'Codex 余额偏低',
-    body: `当前 5 小时 ${lastUsage.fiveHour ?? '-'}%，每周 ${lastUsage.weekly ?? '-'}%。`
+    title: en ? 'Codex balance is low' : 'Codex 余额偏低',
+    body: en
+      ? `Current 5 hour: ${lastUsage.fiveHour ?? '-'}%, weekly: ${lastUsage.weekly ?? '-'}%.`
+      : `当前 5 小时 ${lastUsage.fiveHour ?? '-'}%，每周 ${lastUsage.weekly ?? '-'}%。`
   }).show();
 }
 
 function showErrorNotification(message) {
+  const en = config.language === 'en';
   new Notification({
-    title: 'Codex QuotaRing 未更新',
-    body: message || '无法读取余额，请检查登录状态或网络连接。'
+    title: en ? 'Codex QuotaRing was not updated' : 'Codex QuotaRing 未更新',
+    body: message || (en
+      ? 'Could not read balance. Check your login state or network connection.'
+      : '无法读取余额，请检查登录状态或网络连接。')
   }).show();
 }
 
@@ -325,36 +366,52 @@ function isUsagePageLoaded(win) {
   return isUsagePageUrl(currentUrl) && !win.webContents.isLoading();
 }
 
-async function prepareUsagePage(win, { forceReload = false } = {}) {
+async function prepareUsagePage(win, { forceReload = false, hardReload = false } = {}) {
   if (!win || win.isDestroyed()) throw new Error('使用页面窗口已关闭');
   if (win.webContents.isCrashed()) throw new Error('使用页面已停止响应，请重新刷新');
 
   const currentUrl = win.webContents.getURL();
   const onUsagePage = isUsagePageUrl(currentUrl);
+  writeDebugLog('prepare-page', { forceReload, hardReload, onUsagePage, currentUrl });
 
   if (!onUsagePage) {
+    setDebugStage('Opening usage page', { currentUrl });
     await withTimeout(win.loadURL(USAGE_URL), PAGE_LOAD_TIMEOUT_MS, '使用页面加载超时');
     return;
   }
 
   if (forceReload) {
     if (win.webContents.isLoading()) {
+      setDebugStage('Waiting for page load', { currentUrl });
       await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
       return;
     }
 
     try {
+      setDebugStage(hardReload ? 'Hard reloading usage page' : 'Reloading usage page', { currentUrl });
       win.webContents.stop();
-      win.webContents.reloadIgnoringCache();
+      if (hardReload) {
+        win.webContents.reloadIgnoringCache();
+      } else {
+        win.webContents.reload();
+      }
       await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
       return;
-    } catch {
-      await withTimeout(win.loadURL(USAGE_URL), PAGE_LOAD_TIMEOUT_MS, '使用页面重新加载超时');
+    } catch (reloadError) {
+      try {
+        setDebugStage('Reopening usage page', { currentUrl, reloadError: reloadError.message });
+        win.webContents.stop();
+        await withTimeout(win.loadURL(USAGE_URL), PAGE_LOAD_TIMEOUT_MS, '使用页面重新加载超时');
+      } catch {
+        if (onUsagePage) return;
+        throw reloadError;
+      }
       return;
     }
   }
 
   if (win.webContents.isLoading()) {
+    setDebugStage('Waiting for page load', { currentUrl });
     await waitForPageReady(win, PAGE_LOAD_TIMEOUT_MS);
   }
 }
@@ -421,38 +478,61 @@ function isIgnorableNavigationError(errorCode, errorDescription = '') {
   return errorCode === -3 || /ERR_ABORTED/i.test(errorDescription);
 }
 
-async function readUsageFromPage(win) {
+function resetStillUseful(resetText) {
+  if (!resetText) return false;
+  const parsed = new Date(resetText);
+  return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
+}
+
+function nextResetValue(newReset, previousReset, percent) {
+  if (newReset) return newReset;
+  if (percent === 100) return null;
+  return resetStillUseful(previousReset) ? previousReset : null;
+}
+
+async function readUsageFromPage(win, { reloadBetweenAttempts = true, reportFailure = true } = {}) {
   let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  const maxAttempts = reloadBetweenAttempts ? 3 : 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
+      setDebugStage(`Reading usage data (${attempt + 1}/${maxAttempts})`, { reloadBetweenAttempts });
       await readUsageFromPageOnce(win);
       return;
     } catch (error) {
       lastError = error;
-      if (attempt < 2) {
+      writeDebugLog('read-attempt-failed', { attempt: attempt + 1, error: error.message });
+      if (reloadBetweenAttempts && attempt < 2) {
         await delay(1000);
         try {
-          await prepareUsagePage(win, { forceReload: true });
+          setDebugStage(`Retrying after reload (${attempt + 2}/3)`, { previousError: error.message });
+          await prepareUsagePage(win, { forceReload: true, hardReload: true });
         } catch (reloadError) {
           lastError = reloadError;
+          writeDebugLog('retry-reload-failed', { attempt: attempt + 1, error: reloadError.message });
         }
       }
     }
   }
 
-  lastUsage = {
-    ...lastUsage,
-    status: '刷新失败',
-    updatedAt: Date.now(),
-    error: lastError ? lastError.message : '读取失败'
-  };
-  updateTray();
-  showErrorNotification(lastUsage.error);
+  if (reportFailure) {
+    lastUsage = {
+      ...lastUsage,
+      status: '刷新失败',
+      updatedAt: Date.now(),
+      error: lastError ? lastError.message : '读取失败',
+      debugStage: `Failed: ${lastError ? lastError.message : '读取失败'}`
+    };
+    updateTray();
+    showErrorNotification(lastUsage.error);
+  }
+  throw lastError || new Error('读取失败');
 }
 
 async function readUsageFromPageOnce(win) {
   try {
+    setDebugStage('Waiting for usage content');
     await waitForUsageContent(win);
+    setDebugStage('Parsing usage content');
     const result = await withTimeout(win.webContents.executeJavaScript(`
       (() => {
         const text = document.body ? document.body.innerText : '';
@@ -482,10 +562,17 @@ async function readUsageFromPageOnce(win) {
           if (!block) return null;
           return toPercent(block.match(percentPattern));
         };
+        const cleanReset = (value) => {
+          if (!value) return null;
+          return value
+            .replace(/^(?:时间|time)\\s*[:：]?\\s*/i, '')
+            .replace(/^(?:at|on)\\s+/i, '')
+            .trim();
+        };
         const parseReset = (block) => {
           if (!block) return null;
-          const match = block.match(/(?:Resets?|Reset|Renews?|Renewal|恢复|重置)\\s*(?:in|at)?\\s*[:：]?\\s*([^\\n]+)/i);
-          return match ? match[1].trim() : null;
+          const match = block.match(/(?:Resets?|Reset|Renews?|Renewal|恢复|重置)(?:\\s*(?:time|时间))?\\s*(?:in|at|on)?\\s*[:：]?\\s*([^\\n]+)/i);
+          return match ? cleanReset(match[1]) : null;
         };
         const hasAny = (value, patterns) => patterns.some((pattern) => pattern.test(value));
         const metricFromDom = (patterns, otherPatterns) => {
@@ -528,8 +615,8 @@ async function readUsageFromPageOnce(win) {
           const block = collected.join('\\n');
           return percentPattern.test(block) ? block : null;
         };
-        const fiveCard = metricFromDom(fivePatterns, weeklyPatterns) || metricFromLines(fivePatterns, weeklyPatterns);
-        const weeklyCard = metricFromDom(weeklyPatterns, fivePatterns) || metricFromLines(weeklyPatterns, fivePatterns);
+        const fiveCard = metricFromLines(fivePatterns, weeklyPatterns) || metricFromDom(fivePatterns, weeklyPatterns);
+        const weeklyCard = metricFromLines(weeklyPatterns, fivePatterns) || metricFromDom(weeklyPatterns, fivePatterns);
         return {
           title: document.title,
           href: location.href,
@@ -555,11 +642,18 @@ async function readUsageFromPageOnce(win) {
       status: '已更新',
       fiveHour: result.fiveHour,
       weekly: result.weekly,
-      fiveHourReset: result.fiveHourReset,
-      weeklyReset: result.weeklyReset,
+      fiveHourReset: nextResetValue(result.fiveHourReset, lastUsage.fiveHourReset, result.fiveHour),
+      weeklyReset: nextResetValue(result.weeklyReset, lastUsage.weeklyReset, result.weekly),
       updatedAt: Date.now(),
-      error: null
+      error: null,
+      debugStage: 'Read succeeded'
     };
+    writeDebugLog('read-succeeded', {
+      fiveHour: result.fiveHour,
+      weekly: result.weekly,
+      fiveHourReset: result.fiveHourReset,
+      weeklyReset: result.weeklyReset
+    });
     updateTray();
     showLowBalanceNotification();
   } catch (error) {
@@ -604,30 +698,83 @@ function withTimeout(promise, timeoutMs, message) {
   });
 }
 
-async function refreshUsage({ visible = false } = {}) {
-  if (activeRefreshPromise) return activeRefreshPromise;
+async function refreshUsage({ visible = false, forceNew = false, forceFresh = true } = {}) {
+  if (activeRefreshPromise && !forceNew) {
+    writeDebugLog('refresh-reused-active', { elapsedMs: Date.now() - activeRefreshStartedAt });
+    if (Date.now() - activeRefreshStartedAt < REFRESH_TOTAL_TIMEOUT_MS) return activeRefreshPromise;
+    writeDebugLog('refresh-active-expired', { elapsedMs: Date.now() - activeRefreshStartedAt });
+    activeRefreshPromise = null;
+  }
 
-  activeRefreshPromise = (async () => {
+  activeRefreshStartedAt = Date.now();
+  const generation = refreshGeneration + 1;
+  refreshGeneration = generation;
+  setDebugStage('Refresh started', { visible, forceNew, forceFresh, generation });
+
+  activeRefreshPromise = withTimeout((async () => {
     try {
-      lastUsage = { ...lastUsage, status: '正在刷新', error: null };
+      lastUsage = { ...lastUsage, status: '正在刷新', error: null, debugStage: 'Refresh started' };
       updateTray();
       const win = openUsageWindow(visible);
-      if (!visible) win.hide();
-      await prepareUsagePage(win, { forceReload: true });
-      await readUsageFromPage(win);
+      const shouldKeepVisible = visible || win.isVisible();
+      if (!shouldKeepVisible) win.hide();
+      writeDebugLog('usage-window-ready', {
+        visible: win.isVisible(),
+        requestedVisible: visible,
+        forceFresh,
+        url: win.webContents.getURL()
+      });
+
+      try {
+        if (forceFresh) {
+          setDebugStage('Refreshing page data');
+          await prepareUsagePage(win, { forceReload: true, hardReload: true });
+        } else if (!isUsagePageUrl(win.webContents.getURL())) {
+          await prepareUsagePage(win, { forceReload: false });
+        }
+        setDebugStage(forceFresh ? 'Reading refreshed page' : 'Reading current page');
+        await readUsageFromPage(win, { reloadBetweenAttempts: false, reportFailure: false });
+      } catch (firstError) {
+        writeDebugLog('first-read-failed-reloading', { error: firstError.message });
+        await prepareUsagePage(win, { forceReload: true, hardReload: true });
+        await readUsageFromPage(win, { reloadBetweenAttempts: true, reportFailure: false });
+      }
     } catch (error) {
+      if (generation === refreshGeneration) {
+        lastUsage = {
+          ...lastUsage,
+          status: '刷新失败',
+          updatedAt: Date.now(),
+          error: error.message,
+          debugStage: `Failed: ${error.message}`
+        };
+        writeDebugLog('refresh-failed', { generation, error: error.message });
+        updateTray();
+        showErrorNotification(lastUsage.error);
+      }
+    } finally {
+      if (generation === refreshGeneration) {
+        writeDebugLog('refresh-finished', { generation, status: lastUsage.status });
+        activeRefreshPromise = null;
+        activeRefreshStartedAt = 0;
+      }
+    }
+  })(), REFRESH_TOTAL_TIMEOUT_MS, '刷新超时，请打开登录页面确认 ChatGPT 页面是否响应').catch((error) => {
+    if (generation === refreshGeneration) {
       lastUsage = {
         ...lastUsage,
         status: '刷新失败',
         updatedAt: Date.now(),
-        error: error.message
+        error: error.message,
+        debugStage: `Failed: ${error.message}`
       };
+      writeDebugLog('refresh-timeout', { generation, error: error.message });
       updateTray();
       showErrorNotification(lastUsage.error);
-    } finally {
       activeRefreshPromise = null;
+      activeRefreshStartedAt = 0;
     }
-  })();
+  });
 
   return activeRefreshPromise;
 }
@@ -1023,7 +1170,7 @@ function hidePanel({ destroy = false } = {}) {
 }
 
 ipcMain.handle('app:get-state', () => ({ usage: lastUsage, config: publicConfig() }));
-ipcMain.handle('app:refresh', () => refreshUsage({ visible: false }));
+ipcMain.handle('app:refresh', () => refreshUsage({ visible: false, forceNew: true }));
 ipcMain.handle('app:open-usage', () => openUsageWindow(true));
 ipcMain.handle('app:toggle-panel', () => {
   togglePanel();
@@ -1069,6 +1216,7 @@ ipcMain.handle('app:save-config', (_event, nextConfig) => {
 
 app.whenReady().then(() => {
   if (!singleInstanceLock) return;
+  writeDebugLog('app-ready', { appVersion: APP_VERSION, userData: app.getPath('userData') });
   tray = new Tray(makeTrayIcon(null, null));
   tray.on('click', togglePanel);
   tray.on('right-click', showTrayMenu);

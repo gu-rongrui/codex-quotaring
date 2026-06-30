@@ -1,6 +1,6 @@
 {
   "name": "codex-quotaring",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Windows tray monitor for ChatGPT Codex balance, 5 hour usage limit, and weekly usage limit.",
   "main": "src/main.js",
   "scripts": {

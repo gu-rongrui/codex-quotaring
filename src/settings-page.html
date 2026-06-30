@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,10 @@
       overflow: hidden;
       background: transparent;
       user-select: none;
+    }
+
+    body:not(.ready) .window {
+      opacity: 0;
     }
 
     .window {
@@ -272,50 +276,50 @@
         <h1>Settings</h1>
         <span id="versionBadge" class="version">v0.1.0</span>
       </div>
-      <button id="close" class="close" title="关闭" aria-label="关闭">
+      <button id="close" class="close" title="Close" aria-label="Close">
         <span class="icon dismiss-icon" aria-hidden="true"></span>
       </button>
     </header>
 
     <div class="field">
-      <label id="refreshMinutesLabel" for="refreshMinutes">刷新频率（分钟）</label>
+      <label id="refreshMinutesLabel" for="refreshMinutes">Refresh interval (min)</label>
       <input id="refreshMinutes" type="number" min="1" max="1440" step="1">
     </div>
     <div class="field">
-      <label id="warnBelowPercentLabel" for="warnBelowPercent">低余额提醒阈值（%）</label>
+      <label id="warnBelowPercentLabel" for="warnBelowPercent">Low-balance threshold (%)</label>
       <input id="warnBelowPercent" type="number" min="1" max="100" step="1">
     </div>
     <label class="check">
       <input id="notifyWhenLow" type="checkbox">
-      <span id="notifyWhenLowLabel">余额低于阈值时通知</span>
+      <span id="notifyWhenLowLabel">Notify when below threshold</span>
     </label>
     <label class="check">
       <input id="autoUpdate" type="checkbox">
-      <span id="autoUpdateLabel">自动更新</span>
+      <span id="autoUpdateLabel">Auto update</span>
     </label>
     <label class="check">
       <input id="autoLaunch" type="checkbox">
-      <span id="autoLaunchLabel">开机自动启动</span>
+      <span id="autoLaunchLabel">Start at login</span>
     </label>
 
     <div class="seg-row">
-      <div id="languageLabel" class="seg-label">语言</div>
+      <div id="languageLabel" class="seg-label">Language</div>
       <div class="segmented" data-setting="language">
         <button id="languageZh" type="button" data-value="zh">中文</button>
-        <button id="languageEn" type="button" data-value="en">EN</button>
+        <button id="languageEn" type="button" data-value="en">English</button>
       </div>
     </div>
     <div class="seg-row">
-      <div id="themeLabel" class="seg-label">主题</div>
+      <div id="themeLabel" class="seg-label">Theme</div>
       <div class="segmented" data-setting="theme">
-        <button id="themeLight" type="button" data-value="light">浅色</button>
-        <button id="themeDark" type="button" data-value="dark">深色</button>
+        <button id="themeLight" type="button" data-value="light">Light</button>
+        <button id="themeDark" type="button" data-value="dark">Dark</button>
       </div>
     </div>
 
     <div class="actions">
-      <button id="save" class="primary">保存</button>
-      <button id="openUsage">登录页面</button>
+      <button id="save" class="primary">Save</button>
+      <button id="openUsage">Login page</button>
     </div>
   </main>
 
@@ -342,7 +346,7 @@
       openUsage: document.getElementById('openUsage')
     };
 
-    let selectedLanguage = 'zh';
+    let selectedLanguage = 'en';
     let selectedTheme = 'light';
     let currentConfig = {};
 
@@ -407,11 +411,13 @@
       els.save.textContent = t().save;
       els.openUsage.textContent = t().loginPage;
       document.documentElement.lang = selectedLanguage === 'en' ? 'en' : 'zh-CN';
+      document.getElementById('close').title = selectedLanguage === 'en' ? 'Close' : '关闭';
+      document.getElementById('close').setAttribute('aria-label', selectedLanguage === 'en' ? 'Close' : '关闭');
     }
 
     function render({ config }) {
       currentConfig = config;
-      selectedLanguage = config.language || 'zh';
+      selectedLanguage = config.language === 'zh' ? 'zh' : 'en';
       selectedTheme = config.theme || 'light';
       document.body.classList.toggle('theme-dark', selectedTheme === 'dark');
       renderStaticText();
@@ -423,6 +429,7 @@
       els.versionBadge.textContent = `v${config.appVersion || '0.1.0'}`;
       setSegmented('language', selectedLanguage);
       setSegmented('theme', selectedTheme);
+      document.body.classList.add('ready');
     }
 
     async function load() {
